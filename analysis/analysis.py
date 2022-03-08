@@ -146,11 +146,11 @@ handle_pf = Handle ('vector<pat::PackedCandidate>')
 label_pf = ("packedPFCandidates",  "",  "RECO")
 
 
-rundict = createRunDict('/work/ytakahas/work/Trigger/CMSSW_11_1_0/src/Analysis/HLTAnalyserPy/test/LumiData_2018_20200401.csv')
+rundict = createRunDict('./LumiData_2018_20200401.csv')
 
 gjson = None
 
-with open("/work/ytakahas/work/Trigger/CMSSW_11_1_0/src/Analysis/HLTAnalyserPy/test/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt") as f:
+with open("/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions18/13TeV/Legacy_2018/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt") as f:
     gjson = json.load(f)
 
 
