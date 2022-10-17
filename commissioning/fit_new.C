@@ -9,6 +9,7 @@
 #include "RooAbsReal.h"
 #include "RooBinning.h"
 #include "RooCBShape.h"
+#include "RooCrystalBall.h"
 #include "RooCategory.h"
 #include "RooChebychev.h"
 #include "RooConstVar.h"
@@ -75,53 +76,45 @@
 
 #define DrawResiduals
 
-using namespace RooFit ;
-using namespace RooStats ;
+//using namespace RooFit ;
+//using namespace RooStats ;
 
-Double_t DoubleSidedCB2(double x, double mu, double width, double a1, double p1, double a2, double p2)
-{
-  double u   = (x-mu)/width;
-  double A1  = TMath::Power(p1/TMath::Abs(a1),p1)*TMath::Exp(-a1*a1/2);
-  double A2  = TMath::Power(p2/TMath::Abs(a2),p2)*TMath::Exp(-a2*a2/2);
-  double B1  = p1/TMath::Abs(a1) - TMath::Abs(a1);
-  double B2  = p2/TMath::Abs(a2) - TMath::Abs(a2);
-
-  double result(1);
-  if      (u<-a1) result *= A1*TMath::Power(B1-u,-p1);
-  else if (u<a2)  result *= TMath::Exp(-u*u/2);
-  else            result *= A2*TMath::Power(B2+u,-p2);
-  return result;
-}
-
-
-double DoubleSidedCB(double* x, double *par)
-{
-  return(par[0] * DoubleSidedCB2(x[0], par[1],par[2],par[3],par[4],par[5],par[6]));
-}
-
-//void fit_jpsik();
-//void Fit_jpsik() { fit_jpsik(); }
-void fit() {
+void fit_new() {
 
   ////////////////////////////////////////////////////////////////////////////////
   // OPTIONS
   
-  //TString sample = "2022Sep05_Run2022D";
-  //TString sample = "2022Sep05_Run2022D_rare";
+  //TString tag = "2022Sep05";
+  TString tag = "2022Oct12";
 
-  //TString sample = "2022Sep05_Run2022";
-  //TString sample = "2022Sep05_Run2022_riccardo";
-  //TString sample = "2022Sep05_Run2022_rare";
+  TString sample = "Run2022_Jpsi";
+  //TString sample = "Run2022D_rare";
+  
+  //TString sample = "Run2022";
+  //TString sample = "Run2022_riccardo";
+  //TString sample = "Run2022_rare_riccardo";
+  //TString sample = "Run2022_Psi2S";
 
-  TString sample = "2022Sep05_BuToKJpsi_Toee";
-  //TString sample = "2022Sep05_BuToKee";
+  //TString sample = "BuToKJpsi_Toee";
+  //TString sample = "BuToKPsi2S_Toee";
+  //TString sample = "BuToKee";
 
   TString var = "b_mass";
-
-#define isMC // switch off bkgd shapes
   
-  int Bc_bins = 30;
-
+  //#define isMC // switch off bkgd shapes
+  //#define isRARE // rare vs J/psi
+  //#define isPsi2S // rare vs J/psi
+  
+#ifdef isRARE
+  int Bc_bins = 20;
+#else
+#ifdef isPsi2S
+  int Bc_bins = 75;
+#else
+  int Bc_bins = 75;
+#endif
+#endif
+  
 ////////////////////////////////////////////////////////////////////////////////
 
   gStyle->SetOptStat(0);
@@ -132,10 +125,9 @@ void fit() {
   TF1 *f_1 = new TF1("f_1", "1", 0, 116);  f_1->SetLineColor(kBlue); f_1->SetLineStyle(7);
   TF1 *f_2 = new TF1("f_2", "-1", 0, 116); f_2->SetLineColor(kBlue); f_2->SetLineStyle(7);
   
-  //RooRealVar mass(var, "Mass [GeV]", 5.1, 5.4);
   RooRealVar mass(var, "Mass [GeV]", 4.7, 5.7);
 
-  TFile *ntuple_mc = new TFile("./slimmed/2022Sep05/slimmed_"+sample+".root"); 
+  TFile *ntuple_mc = new TFile("./slimmed/"+tag+"/slimmed_"+tag+"_"+sample+".root"); 
 
   TTree* tree_mc   = (TTree*) ntuple_mc->Get("tree");
 
@@ -147,72 +139,106 @@ void fit() {
 
   RooDataSet *cut_mc    = (RooDataSet*)mc   ->reduce(SelectionCut);
 
-  // exponential
+  // Combinatorial bkgd
   RooRealVar        c0("c0", "c0", -.5, -40., 0.);
   RooExponential mBkg0("mBkg0", "exponential", mass, c0);
   RooRealVar N_mBkg0 ("N_mBkg0", "N_mBkg0", 10000., 0., 100000000.);
   RooExtendPdf e_mBkg0 ("e_mBkg0", "e_mBkg0", mBkg0, N_mBkg0);
 
-  //Error Function1
-  RooRealVar ErfSlope ("ErfSlope", "Erf Slope", 5., 2., 10.);
-  RooRealVar meanErf ("meanErf", "mean of the Erf gaussian", 5.224, 5.100, 5.30);  //5300
-  RooRealVar sigmaErf ("sigmaErf", "width of the Erf gaussian", 0.0386, 0.010, 0.040); // 200
-  RooRealVar ErfOffset ("ErfOffset", "Offset of Erf exponential", 5.100, 5.000, 5.200); //4930.
+  // Partially reco'ed bkgd
+  RooRealVar ErfSlope ("ErfSlope", "Erf Slope", 2.25, 2., 3.);
+  RooRealVar meanErf ("meanErf", "mean of the Erf gaussian", 5.2, 5.15, 5.25);  //5300
+  RooRealVar sigmaErf ("sigmaErf", "width of the Erf gaussian", 0.03, 0.025, 0.035); // 200
+  RooRealVar ErfOffset ("ErfOffset", "Offset of Erf exponential", 5.15, 5.1, 5.2); //4930.
   RooGenericPdf Erf("Erf", "Error Function", "TMath::Exp(TMath::Abs(ErfSlope)*("+var+"-ErfOffset))*TMath::Erfc(("+var+"-meanErf)/sigmaErf)", RooArgSet(mass, meanErf, sigmaErf,ErfSlope,ErfOffset));
-//  RooGenericPdf Erf("Erf", "Error Function", "TMath::Erfc((mass-meanErf)/sigmaErf)", RooArgSet(mass, meanErf, sigmaErf, ErfOffset));
-
   RooRealVar N_Erf ("N_Erf", "N_Erf", 30000, 0, 10000000);
   RooExtendPdf e_Erf ("e_Erf", "e_Erf", Erf, N_Erf);
 
-  // signal
-  //RooRealVar mean_m  ("mean_m","mean of gaussian", 5.2749, 5.26, 5.3); // orig
-  //RooRealVar mean_m  ("mean_m","mean of gaussian", 5.27, 5.24, 5.3); // open?
-  RooRealVar mean_m  ("mean_m","mean of gaussian", 5.27, 5.27, 5.27); // fixed @ J/psi
-  //RooRealVar mean_m  ("mean_m","mean of gaussian", 5.26, 5.26*0.99, 5.26*1.01); // fixed from J/psi
-  //RooRealVar mean_m  ("mean_m","mean of gaussian", 5.26, 5.26*0.99, 5.26*1.01); // fixed from rare
-
-  //RooRealVar sigma_m ("sigma_m","Scale Factor 1",  0.034, 0.01, 0.040); // orig
-  //RooRealVar sigma_m ("sigma_m","Scale Factor 1",  0.03, 0.001, 0.2); // open?
-  RooRealVar sigma_m ("sigma_m","Scale Factor 1",  0.15, 0.15, 0.15); // fixed @ J/psi
-  //RooRealVar sigma_m ("sigma_m","Scale Factor 1",  3.99e-02, 3.99e-02*0.99, 3.99e-02*1.01); // fixed from J/psi
-  //RooRealVar sigma_m ("sigma_m","Scale Factor 1",  3.4e-02, 3.4e-02*0.99, 3.4e-02*1.01); // fixed from rare
-
-  RooGaussian mSig1   ("mSig1","signal p.d.f.", mass, mean_m, sigma_m);
-//  RooRealVar sigma_m2 ("sigma_m2","Scale Factor 1",  0.08, 0.0, 0.2);
-//  RooGaussian mSig2   ("mSig2","signal p.d.f.", mass, mean_m, sigma_m2);
-
-  //RooRealVar frac ("frac", "frac", 0.5, 0., 1.); // open? (0->1, CB->Gaus)
-  RooRealVar frac ("frac", "frac", 0.32, 0.32, 0.32); // fixed @ J/psi
-
-  //RooRealVar sigma_cb ("sigma_cb","Scale Factor 1", 0.034, 0.02, 0.075); // orig
-  //RooRealVar sigma_cb ("sigma_cb","Scale Factor 1", 0.03, 0.001, 0.2); // open?
-  RooRealVar sigma_cb ("sigma_cb","Scale Factor 1", 0.05, 0.05, 0.05); // fixed @ J/psi
-  //RooRealVar sigma_cb ("sigma_cb","Scale Factor 1", 6.51e-02, 6.51e-02*0.99, 6.51e-02*1.01); // fixed from J/psi
-  //RooRealVar sigma_cb ("sigma_cb","Scale Factor 1", 7.50e-02, 7.50e-02*0.99, 7.50e-02*1.01); // fixed from rare
-
-  RooRealVar alpha("alpha", "Alpha", 1.2); //5,0.1,10);
-  RooRealVar n("n", "Order", 10);//6,0.1,10);
-  RooCBShape  mSig3   ("mSig3","signa p.d.f.", mass, mean_m, sigma_cb, alpha,n);
+//  // Signal (Gaus)
+//  RooRealVar mean_m  ("mean_m","mean of gaussian", 5.27, 5.27, 5.27); // fixed @ J/psi
+//  RooRealVar sigma_m ("sigma_m","Scale Factor 1",  0.15, 0.15, 0.15); // fixed @ J/psi
+//  RooGaussian mSig1   ("mSig1","signal p.d.f.", mass, mean_m, sigma_m);
   
-  RooAddPdf mSig ("mSig", "mSig", RooArgList(mSig3));
+//  // Signal (CB)
+//  RooRealVar sigma_cb ("sigma_cb","Scale Factor 1", 0.05, 0.05, 0.05); // fixed @ J/psi
+//  RooRealVar alpha("alpha", "Alpha", 1.2); //5,0.1,10);
+//  RooRealVar n("n", "Order", 10);//6,0.1,10);
+//  RooCBShape  mSig3   ("mSig3","signa p.d.f.", mass, mean_m, sigma_cb, alpha,n);
+
+//  // Signal (Gaus vs CB)
+//  RooRealVar frac ("frac", "frac", 0., 0., 0.); // fixed @ J/psi
+
+//  // Combine PDFs
+//  RooAddPdf mSig ("mSig", "mSig", RooArgList(mSig1, mSig3), frac);
+//  RooRealVar N_mSig  ("N_mSig", "N_mSig", 80000., 0., 1000000000.);
+//  RooExtendPdf e_mSig ("e_mSig", "e_mSig", mSig, N_mSig);
+
+
+  // Hack - include Gaus but set frac to zero (i.e. no contribution)
+  //RooRealVar mean_m("mean_m","mu",5.27,4.7,5.7); // open
+  //RooRealVar sigma_m("sigma_m","width",0.1,0.,1.); // open
+#ifdef isRARE
+  RooRealVar mean_m("mean_m","mu",5.27); // fixed @ low q2
+  RooRealVar sigma_m("sigma_m","width",0.); // fixed @ low q2
+#else
+#ifdef isPsi2S
+  RooRealVar mean_m("mean_m","mu",5.27); // fixed @ Psi2S
+  RooRealVar sigma_m("sigma_m","width",0.); // fixed @ Psi2S
+#else
+  RooRealVar mean_m("mean_m","mu",5.27); // fixed @ J/psi
+  RooRealVar sigma_m("sigma_m","width",0.); // fixed @ J/psi
+#endif
+#endif
+  RooGaussian mSig1("mSig1","signal p.d.f.", mass, mean_m, sigma_m);
+
+  // Signal (double-sided CB)
+  //RooRealVar sigma_cb("sigma_cb","width",0.0578,0.,1.); // open
+  //RooRealVar a1("a1","a1",0.815,0.,100.); // open
+  //RooRealVar p1("p1","p1",100.,0.,1000.); // open
+  //RooRealVar a2("a2","a2",3.111,0.,100.); // open
+  //RooRealVar p2("p2","p2",2.01,0.,100.); // open
+#ifdef isRARE
+  RooRealVar sigma_cb("sigma_cb","width",0.0509); // fixed @ low q2
+  RooRealVar a1("a1","a1",0.920); // fixed @ low q2
+  RooRealVar p1("p1","p1",1.26); // fixed @ low q2
+  RooRealVar a2("a2","a2",1.86); // fixed @ low q2
+  RooRealVar p2("p2","p2",3.20); // fixed @ low q2
+#else
+#ifdef isPsi2S
+  RooRealVar sigma_cb("sigma_cb","width",0.0633); // fixed @ Psi(2S)
+  RooRealVar a1("a1","a1",2.08); // fixed @ Psi(2S)
+  RooRealVar p1("p1","p1",132.); // fixed @ Psi(2S)
+  RooRealVar a2("a2","a2",3.27); // fixed @ Psi(2S)
+  RooRealVar p2("p2","p2",2.27); // fixed @ Psi(2S)
+#else
+  RooRealVar sigma_cb("sigma_cb","width",0.0577); // fixed @ J/psi
+  RooRealVar a1("a1","a1",0.819); // fixed @ J/psi
+  RooRealVar p1("p1","p1",130.); // fixed @ J/psi
+  RooRealVar a2("a2","a2",3.10); // fixed @ J/psi
+  RooRealVar p2("p2","p2",2.04); // fixed @ J/psi
+#endif
+#endif
+  RooCrystalBall mSig3("dcbPdf","DoubleSidedCB",mass,mean_m,sigma_cb,a1,p1,a2,p2);
+
+  // Signal (Gaus vs CB)
+ RooRealVar frac ("frac", "frac", 0., 0., 0.); // fixed to zero for all 
+
+  //RooAddPdf mSig ("mSig", "mSig", RooArgList(mSig3));
+  RooAddPdf mSig ("mSig", "mSig", RooArgList(mSig1, mSig3), frac);
   RooRealVar N_mSig  ("N_mSig", "N_mSig", 80000., 0., 1000000000.);
   RooExtendPdf e_mSig ("e_mSig", "e_mSig", mSig, N_mSig);
-
-  RooRealVar frac1 ("frac1", "frac1", 0.1, 0., 1.);
-  RooRealVar frac2 ("frac2", "frac2", 0.1, 0., 1.);
-
-  RooRealVar signalYield ("signalYield", "signalYield", 100000, 0, 100000000);
+  
+  // Total shape
 #ifdef isMC
   RooAddPdf total("total", "total", RooArgSet(e_mSig));
 #else
   RooAddPdf total("total", "total", RooArgSet(e_mBkg0, e_mSig, e_Erf));
 #endif
-
-  RooFitResult *fr = total.fitTo(*cut_mc, NumCPU(4, kTRUE), Save(), Extended());
+  RooFitResult *fr = total.fitTo(*cut_mc, RooFit::NumCPU(4, kTRUE), RooFit::Save(), RooFit::Extended());
 
   // plot
   //RooPlot *frame_main_fit1 = mass.frame(Title("J/#psi(ee)K Candidate Mass ~4.58 (/fb) ParkingDoubleElectronLowMass"), Bins(Bc_bins));
-  RooPlot *frame_main_fit1 = mass.frame(Title(" "), Bins(Bc_bins));
+  RooPlot *frame_main_fit1 = mass.frame(RooFit::Title(" "), RooFit::Bins(Bc_bins));
   Int_t cerf = 1756;
   Int_t csig = 1757;
   Int_t cexp = 1758;
@@ -221,20 +247,19 @@ void fit() {
   TColor *colorsig = new TColor(csig,  217./255.,95./255.,2./255.);
   TColor *colorexp = new TColor(cexp,  117./255.,112./255.,179./255.);
 
-
-  cut_mc->plotOn(frame_main_fit1, XErrorSize(0), Name("plotmc"));
-  total.plotOn(frame_main_fit1, LineColor(kAzure+1), Name("totalpdf"));
+  cut_mc->plotOn(frame_main_fit1, RooFit::XErrorSize(0), RooFit::Name("plotmc"));
+  total.plotOn(frame_main_fit1, RooFit::LineColor(kAzure+1), RooFit::Name("totalpdf"));
 #ifndef isMC
-  total.plotOn(frame_main_fit1, Components("e_mBkg0"),DrawOption("FL"), LineColor(kAzure+8),FillColor(1758),FillStyle(1004),Name("bkg"));
+  total.plotOn(frame_main_fit1, RooFit::Components("e_mBkg0"),RooFit::DrawOption("FL"), RooFit::LineColor(kAzure+8),RooFit::FillColor(1758),RooFit::FillStyle(1004),RooFit::Name("bkg"));
 #endif
-  total.plotOn(frame_main_fit1, Components(e_mSig),DrawOption("FL"), LineColor(kAzure+5),FillColor(1757),FillStyle(1004),Name("signal"));
+  total.plotOn(frame_main_fit1, RooFit::Components(e_mSig),RooFit::DrawOption("FL"), RooFit::LineColor(kAzure+5),RooFit::FillColor(1757),RooFit::FillStyle(1004),RooFit::Name("signal"));
 #ifndef isMC
-  total.plotOn(frame_main_fit1, Components("e_Erf"),DrawOption("FL"), LineColor(kAzure+10),FillColor(1756),FillStyle(1004),Name("erf"));
+  total.plotOn(frame_main_fit1, RooFit::Components("e_Erf"),RooFit::DrawOption("FL"), RooFit::LineColor(kAzure+10),RooFit::FillColor(1756),RooFit::FillStyle(1004),RooFit::Name("erf"));
 #endif
   frame_main_fit1->GetXaxis()->SetLabelSize(0.05);
 
   frame_main_fit1->GetXaxis()->SetTitleSize(0.05);
-  cut_mc->plotOn(frame_main_fit1, XErrorSize(0));
+  cut_mc->plotOn(frame_main_fit1, RooFit::XErrorSize(0));
 
   TCanvas *c_mass_1 = new TCanvas("c_mass_1", "c_mass_1", 800, 800); //c_mass_1->Divide(2,2);
 #ifdef DrawResiduals
@@ -242,12 +267,12 @@ void fit() {
 
   frame_main_fit1->GetXaxis()->SetTitleSize(0.0);
 
-  RooPlot* dummy_frame_Z = mass.frame(Title("dummy frame to sdfsdfdsfsextract residuals"), Bins(Bc_bins));
-  cut_mc->plotOn(dummy_frame_Z,XErrorSize(0));
+  RooPlot* dummy_frame_Z = mass.frame(RooFit::Title("dummy frame to sdfsdfdsfsextract residuals"), RooFit::Bins(Bc_bins));
+  cut_mc->plotOn(dummy_frame_Z,RooFit::XErrorSize(0));
   total.plotOn(dummy_frame_Z);
 
   RooHist* h_residuals_mass = dummy_frame_Z->pullHist();
-  RooPlot* frame_residuals_mass_Z = mass.frame(Title("asdad"),Bins(Bc_bins));
+  RooPlot* frame_residuals_mass_Z = mass.frame(RooFit::Title("asdad"),RooFit::Bins(Bc_bins));
   frame_residuals_mass_Z->GetYaxis()->SetTitle("Pull"); //(fit - data)/#sigma");
   frame_residuals_mass_Z->GetYaxis()->CenterTitle(true); //(fit - data)/#sigma");
   frame_residuals_mass_Z->GetYaxis()->SetTitleSize(0.1);
@@ -278,13 +303,17 @@ void fit() {
   frame_main_fit1->Draw(); //c_mass_1->cd(1)->SetLogy(1);
   //c_mass_1->SaveAs("plots/canvas_mass.pdf");
 
-  mass.setRange("signal3", mean_m.getVal() - 2*sigma_cb.getVal(),mean_m.getVal() + 2*sigma_cb.getVal()) ;
+  mass.setRange("signal3", mean_m.getVal() - 2.*sigma_cb.getVal(),mean_m.getVal() + 2.*sigma_cb.getVal()) ;
   //mass.setRange("signal3", 5.3,5.5) ;
   
-  RooAbsReal* signalregionfraction = e_mSig.createIntegral(mass,NormSet(mass), Range("signal3")) ; cout << "first integral: "<< signalregionfraction->getVal()<<"=="<<N_mSig.getVal()<<"==" << cut_mc->sumEntries() << endl; 
-  RooAbsReal* totalregionfraction = total.createIntegral(mass,NormSet(mass), Range("signal3")); cout<<"secondintetgr4gal == "<<totalregionfraction->getVal()<<endl;
-  cout<<"hhe"<<mc->sumEntries()<<endl;
-  cout<<total.getVal()<<endl;
+  RooAbsReal* signalregionfraction = e_mSig.createIntegral(mass,RooFit::NormSet(mass), RooFit::Range("signal3")) ;
+  cout << "e_mSig.createIntegral: "<< signalregionfraction->getVal()<<endl;
+  cout <<"N_mSig: "<<N_mSig.getVal()<<endl;
+  cout << "cut_mc->sumEntries(): "<<cut_mc->sumEntries() << endl; 
+  RooAbsReal* totalregionfraction = total.createIntegral(mass,RooFit::NormSet(mass), RooFit::Range("signal3"));
+  cout<<"total.createIntegral: "<<totalregionfraction->getVal()<<endl;
+  cout<<"mc->sumEntries(): "<<mc->sumEntries()<<endl;
+  cout<<"total.getVal(): "<<total.getVal()<<endl;
   TLatex *texZ_mumu = new TLatex();
   texZ_mumu->SetTextSize(0.04);
   //texZ_mumu->DrawLatex(2.6, frame_main_fit1->GetMaximum()*1.01, "#bf{CMS} Preliminary" );
@@ -322,6 +351,6 @@ void fit() {
 
 
   massLeg_Jpsi->Draw();
-  c_mass_1->SaveAs("plots/2022Sep05/fitted_"+var+"_"+sample+".pdf");
+  c_mass_1->SaveAs("plots/"+tag+"/fitted_"+tag+"_"+sample+"_"+var+".pdf");
 
 }
