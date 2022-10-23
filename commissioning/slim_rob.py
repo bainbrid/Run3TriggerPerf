@@ -180,7 +180,7 @@ for dataset,samples in dct[tag].items() :
                     & (batch['b_mass']>4.7) & (batch['b_mass']<5.7) # B mass window
                     )
 
-                # LOWQ2: ~low JSPI: GOOD! PSI2S: low 
+                # USED FOR PJSI IN PRESENTATION TO BPH
                 cuts_rob = (
                     (batch['inAcc']==1) & (batch['isMatched']==1) # GEN
                     & (batch['HLT_DoubleEle6p5']==1) # Trigger
@@ -198,7 +198,8 @@ for dataset,samples in dct[tag].items() :
                     & (batch['b_mass']>4.7) & (batch['b_mass']<5.7) # B mass window
                     )
 
-                # LOWQ2: GOOD! JSPI: ~high PSI2S: ~low
+                # USED FOR LOWQ2 IN PRESENTATION TO BPH
+                # USED FOR PSI2S (W/OUT BDT!) IN PRESENTATION TO BPH
                 cuts_tight = (
                     (batch['inAcc']==1) & (batch['isMatched']==1) # GEN
                     & (batch['HLT_DoubleEle6p5']==1) # Trigger
@@ -212,7 +213,7 @@ for dataset,samples in dct[tag].items() :
                     & (batch['b_svprob']>0.01) # cut-based
                     & (batch['b_pt']>15.) # cut-based
                     & (batch['b_lxysig']>1.) # cut-based ???
-                    & (batch['bdt']>8.) # BDT-based
+                    & (batch['bdt']>8.) # BDT-based (was removed for Psi2S...!!!)
                     & (batch['b_mass']>4.7) & (batch['b_mass']<5.7) # B mass window
                     )
 
@@ -220,7 +221,7 @@ for dataset,samples in dct[tag].items() :
                 # CHOOSE CUTS
                 ##########
                 
-                cuts = cuts_rob
+                cuts = cuts_tight
 
                 ##########
                 # TRIGGERS
