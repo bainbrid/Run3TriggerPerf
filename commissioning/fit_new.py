@@ -1,10 +1,36 @@
 import ROOT
 import math
+import json
 
-def fit_new() :
+def fit_new(
+    isMC=True,
+    region=None,
+    sample=None,
+    tag=None,
+    trigger=None,
+    var=None,
+    verbose=0,
+    read_signal_params=True,write_signal_params=True,fix_signal_params=True,
+    read_comb_params=True,write_comb_params=True,fix_comb_params=True,
+    add_part_bkgd=True,read_part_params=True,write_part_params=True,fix_part_params=True,
+    ) :
+
+  print("#####################")
+  print("Calling fit_new() ...")
+  print("isMC:   ",isMC)
+  print("region: ",region)
+  print("sample: ",sample)
+  print("trigger:",trigger)
+  print("tag:    ",tag)
+  print("verbose:",verbose)
+  print("#####################")
   
   ################################################################################
-  # FITTING TO THE DATA
+  # INITIALISE AND PREPARE DATA SET
+
+  # Suppress ROOT output messages?
+  if verbose<1:
+    ROOT.RooMsgService.instance().setSilentMode(ROOT.kTRUE)
 
   # Style
   ROOT.gStyle.SetOptStat(0)
@@ -16,160 +42,423 @@ def fit_new() :
   print("input_file:",input_path)
   print("IsValid?",not input_file.IsZombie())
   
-  # Fitted variable
+  # Trigger and fitted variables
   mass = ROOT.RooRealVar(var,"Mass [GeV]",4.7,5.7)
-  variables = ROOT.RooArgSet(mass)
-
+  if trigger != None and trigger != "":
+    trg = ROOT.RooRealVar(trigger,"Trigger result",0.,1.)
+    variables = ROOT.RooArgSet(mass,trg)
+    print("Trigger variable:",trigger)
+  else:
+    variables = ROOT.RooArgSet(mass)
+  print("Fitted variable: ",var)
+  
   # Build (and select) dataset
   dataset = ROOT.RooDataSet("dataset","dataset",tree,variables)
-  cuts = ROOT.TCut("b_mass>0.") # i.e. null atm ...
-  dataset_selected = dataset.reduce(cuts.GetTitle())
-  dataset_selected.Print("V")
 
+  # Select subset of dataset (e.g. apply trigger requirement)
+  #cuts = ROOT.TCut("L1_10p5_HLT_6p5>0.")
+  if trigger != None and trigger != "": cuts = ROOT.TCut(trigger+">0.5")
+  else: cuts = ROOT.TCut("1")
+  dataset_selected = dataset.reduce(cuts.GetTitle())
+  if verbose>0: dataset_selected.Print("V")
+
+  ################################################################################
+  # SIGNAL PARAMETERS (DEFAULTS AND PARSING JSON)
+  
+  # Default initial parameter values for signal PDF
+  defaults = {
+      "Jpsi":{
+          "cb_mean":(5.279,5.26,5.30),
+          "cb_sigma":(0.057,0.04,0.07),
+          "cb_alphaL":(2.,0.5,3.),
+          "cb_nL":(10.,1.,100.),
+          "cb_alphaR":(2.,0.5,3.),
+          "cb_nR":(10.,1.,100.),
+          "exp_slope":(-0.5,-100.,0.), # combinatorial
+          "expo_slope":(3.8,3.0,5.0),       # (2.25,1.,10.)
+          #"expo_offset":(5.13, 5.11, 5.15), # (5.13, 5.1, 5.15)
+          "erfc_mean":(5.16,5.15,5.17),     # (5.13,5.1,5.15)
+          "erfc_sigma":(0.06,0.05,0.10),    # (0.03,0.015,0.05)
+          },
+      "Psi2S":{
+          "cb_mean":(5.279,5.26,5.30),
+          "cb_sigma":(0.063,0.04,0.07),
+          "cb_alphaL":(2.,0.5,3.),
+          "cb_nL":(10.,1.,100.),
+          "cb_alphaR":(2.,0.5,3.),
+          "cb_nR":(10.,1.,100.),
+          "exp_slope":(-0.5,-100.,0.),
+          "expo_slope":(3.8,3.0,5.0),       # (2.25,1.,10.)
+          #"expo_offset":(5.13, 5.11, 5.15), # (5.13, 5.1, 5.15)
+          "erfc_mean":(5.16,5.15,5.17),     # (5.13,5.1,5.15)
+          "erfc_sigma":(0.06,0.05,0.10),    # (0.03,0.015,0.05)
+          },
+      "LowQ2":{
+          "cb_mean":(5.279,5.26,5.30),
+          "cb_sigma":(0.05,0.04,0.07),
+          "cb_alphaL":(2.,0.5,3.),
+          "cb_nL":(10.,1.,100.),
+          "cb_alphaR":(2.,0.5,3.),
+          "cb_nR":(10.,1.,100.),
+          "exp_slope":(-0.5,-100.,0.),
+          "expo_slope":(3.8,3.0,5.0),       # (2.25,1.,10.)
+          #"expo_offset":(5.13, 5.11, 5.15), # (5.13, 5.1, 5.15)
+          "erfc_mean":(5.16,5.15,5.17),     # (5.13,5.1,5.15)
+          "erfc_sigma":(0.06,0.05,0.10),    # (0.03,0.015,0.05)
+          },
+  }.get(region)
+
+  if ( read_signal_params==True or read_comb_params==True ) and trigger != None:
+    trigger_str = "trigger_OR" if trigger == "" else trigger
+    filename = 'parameters.json'
+    try:
+      with open(filename,'r') as f:
+        try:
+          dct = json.load(f)
+          if read_signal_params==True:
+              isMC_str = 'mc'
+              if isMC_str in dct.keys() and region in dct[isMC_str].keys() and trigger_str in dct[isMC_str][region].keys():
+                  for param in ["cb_mean","cb_sigma","cb_alphaL","cb_nL","cb_alphaR","cb_nR"]:
+                      if param in dct[isMC_str][region][trigger_str]:
+                          defaults[param] = dct[isMC_str][region][trigger_str][param]
+                      else:
+                          print("Unable to read param:",isMC_str,region,trigger_str,param)
+          if read_comb_params==True:
+              isMC_str = 'data'
+              if isMC_str in dct.keys() and region in dct[isMC_str].keys() and trigger_str in dct[isMC_str][region].keys():
+                  for param in ["exp_slope"]:
+                      if param in dct[isMC_str][region][trigger_str]:
+                        defaults[param] = dct[isMC_str][region][trigger_str][param]
+                      else:
+                          print("Unable to read param:",isMC_str,region,trigger_str,param)
+          if read_part_params==True:
+              isMC_str = 'data'
+              if isMC_str in dct.keys() and region in dct[isMC_str].keys() and trigger_str in dct[isMC_str][region].keys():
+                  for param in ["expo_slope","erfc_mean","erfc_sigma"]: # "expo_offset"
+                      if param in dct[isMC_str][region][trigger_str]:
+                        defaults[param] = dct[isMC_str][region][trigger_str][param]
+                      else:
+                          print("Unable to read param:",isMC_str,region,trigger_str,param)
+        except json.decoder.JSONDecodeError:
+          print("Problem parsing json contained in file:",filename)
+    except FileNotFoundError:
+      print("Problem opening file:",filename)
+  print("Initial parameter values:",defaults)
+
+  ################################################################################
+  # SIGNAL PARAMETERS
+
+  # Fixed or constrained signal shapes
+  (idx0,idx1,idx2) = (0,1,2) if fix_signal_params==False else (0,0,0) # (central,low,high)
+  
+  # Signal (double-sided CB)
+  #gaus_mean = ROOT.RooRealVar("gaus_mean","gaussian mean",5.27,5.25,5.3)
+  #gaus_sigma = ROOT.RooRealVar("gaus_sigma","gaussian sigma",0.01,0.,1.)
+  #gaus_pdf = ROOT.RooGaussian("gaus_pdf","gaussian (signal) pdf",mass,gaus_mean,gaus_sigma)
+  
+  # Signal (double-sided CB)
+  # https://root.cern/doc/v624/classRooCrystalBall.html#ae323c7f61647b4fb193d552bf393083d
+  cb_mean = ROOT.RooRealVar(
+      "cb_mean",
+      "DS-CB: location parameter of the Gaussian component",
+      defaults["cb_mean"][idx0],defaults["cb_mean"][idx1],defaults["cb_mean"][idx2])
+  cb_sigma = ROOT.RooRealVar(
+      "cb_sigma",
+      "DS-CB: width parameter of the Gaussian component",
+      defaults["cb_sigma"][idx0],defaults["cb_sigma"][idx1],defaults["cb_sigma"][idx2])
+  cb_alphaL = ROOT.RooRealVar(
+      "cb_alphaL",
+      "DS-CB: location of transition to a power law on the left, in std devs away from mean",
+      defaults["cb_alphaL"][idx0],defaults["cb_alphaL"][idx1],defaults["cb_alphaL"][idx2])
+  cb_nL = ROOT.RooRealVar(
+      "cb_nL",
+      "DS-CB: exponent of power-law tail on the left",
+      defaults["cb_nL"][idx0],defaults["cb_nL"][idx1],defaults["cb_nL"][idx2])
+  cb_alphaR = ROOT.RooRealVar(
+      "cb_alphaR",
+      "DS-CB: location of transition to a power law on the right, in std devs away from mean",
+      defaults["cb_alphaR"][idx0],defaults["cb_alphaR"][idx1],defaults["cb_alphaR"][idx2])
+  cb_nR = ROOT.RooRealVar(
+      "cb_nR",
+      "DS-CB: exponent of power-law tail on the right",
+      defaults["cb_nR"][idx0],defaults["cb_nR"][idx1],defaults["cb_nR"][idx2])
+  cb_pdf = ROOT.RooCrystalBall(
+      "cb_pdf",
+      "Double-sided crystal-ball pdf",
+      mass,cb_mean,cb_sigma,cb_alphaL,cb_nL,cb_alphaR,cb_nR)
+  
+  # Fraction of signal pdf (CB:val=0, Gaus:val=1), HACKED: Gaus contribution = 0
+  #gaus_frac = ROOT.RooRealVar("gaus_frac","fraction of gausian (signal) component",0.,0.,0.)
+  #sum_of_pdf = ROOT.RooAddPdf("sum_of_pdf","sum of signal pdf",ROOT.RooArgList(gaus_pdf,cb_pdf),gaus_frac)
+  #signal_num = ROOT.RooRealVar("signal_num","signal num",1.e4,0.,1.e6)
+  #signal_pdf = ROOT.RooExtendPdf("signal_pdf","signal pdf",sum_of_pdf,signal_num)
+
+  # Signal pdf
+  signal_num = ROOT.RooRealVar("signal_num","signal num",dataset_selected.sumEntries(),0.,1.e6) # estimate S from selected events
+  signal_pdf = ROOT.RooExtendPdf("signal_pdf","signal pdf",cb_pdf,signal_num)
+
+  ################################################################################
+  # BKGD PARAMETERS
+
+  # Fixed or constrained bkgd shapes
+  (idx0,idx1,idx2) = (0,1,2) if fix_comb_params==False else (0,0,0) # (central,low,high)
+  
   # Combinatorial background
-  #c0 = ROOT.RooRealVar("c0","c0",-0.5,-100.,0.) # decay term (args: start,min,max)
-  #combinatorial = ROOT.RooExponential("combinatorial","exponential",mass,c0)
-  #N_combinatorial = ROOT.RooRealVar("N_combinatorial", "N_combinatorial",1.e4,0.,1.e8)
-  #ex_combinatorial = ROOT.RooExtendPdf("ex_combinatorial","ex_combinatorial",combinatorial,N_combinatorial)
-  c0 = ROOT.RooRealVar("c0", "c0",-0.5,-40.,0.)
-  mBkg0 = ROOT.RooExponential("mBkg0","exponential",mass,c0)
-  N_mBkg0 = ROOT.RooRealVar("N_mBkg0","N_mBkg0",10000.,0.,100000000.);
-  e_mBkg0 = ROOT.RooExtendPdf("e_mBkg0","e_mBkg0",mBkg0,N_mBkg0);
+  #exp_slope = ROOT.RooRealVar("exp_slope","slope of exponential",-0.5,-100.,0.)
+  exp_slope = ROOT.RooRealVar(
+      "exp_slope",
+      "slope of exponential",
+      defaults["exp_slope"][idx0],defaults["exp_slope"][idx1],defaults["exp_slope"][idx2])
+  expo_pdf = ROOT.RooExponential("expo_pdf","Exponential PDF",mass,exp_slope)
+  comb_num = ROOT.RooRealVar("comb_num", "combinatorial num",dataset_selected.sumEntries(),0.,1.e6)
+  comb_pdf = ROOT.RooExtendPdf("comb_pdf","combinatorial pdf",expo_pdf,comb_num)
+
+  # Fixed or constrained bkgd shapes
+  (idx0,idx1,idx2) = (0,1,2) if fix_part_params==False else (0,0,0) # (central,low,high)
 
   # Partially reconstructed background (Exp*Erfc)
-  #exp_slope = ROOT.RooRealVar("exp_slope","slope of exponential",2.25,2.,3.)
-  #exp_offset = ROOT.RooRealVar("exp_offset", "offset of exponential", 5.15, 5.1, 5.2)
-  #erfc_mean = ROOT.RooRealVar("erfc_mean", "mean of the Erfc gaussian",5.2,5.15,5.25)
-  #erfc_sigma = ROOT.RooRealVar("erfc_sigma", "width of the Erfc gaussian",0.03,0.025,0.035)
-  #function = "TMath::Exp(TMath::Abs(exp_slope)*("+var+"-exp_offset))*TMath::Erfc(("+var+"-erfc_mean)/erfc_sigma)"
-  #partial = ROOT.RooGenericPdf("partial","Exp*Erfc",function,ROOT.RooArgSet(mass,erfc_mean,erfc_sigma,exp_slope,exp_offset))
-  #N_partial = ROOT.RooRealVar("N_partial", "N_partial",3.e4,0.,1.e7)
-  #ex_partial = ROOT.RooExtendPdf("ex_partial","ex_partial",partial,N_partial)
-  ErfSlope = ROOT.RooRealVar("ErfSlope", "Erf Slope", 2.25, 2., 3.)
-  meanErf = ROOT.RooRealVar("meanErf", "mean of the Erf gaussian", 5.2, 5.15, 5.25)
-  sigmaErf = ROOT.RooRealVar("sigmaErf", "width of the Erf gaussian", 0.03, 0.025, 0.035)
-  ErfOffset = ROOT.RooRealVar("ErfOffset", "Offset of Erf exponential", 5.15, 5.1, 5.2)
-  Erf = ROOT.RooGenericPdf("Erf", "Error Function", "TMath::Exp(TMath::Abs(ErfSlope)*("+var+"-ErfOffset))*TMath::Erfc(("+var+"-meanErf)/sigmaErf)", ROOT.RooArgSet(mass, meanErf, sigmaErf,ErfSlope,ErfOffset))
-  N_Erf = ROOT.RooRealVar("N_Erf", "N_Erf", 30000, 0, 10000000)
-  e_Erf = ROOT.RooExtendPdf("e_Erf", "e_Erf", Erf, N_Erf)
-  
-  # Signal (double-sided CB)
-  #gaus_mean = ROOT.RooRealVar("gaus_mean","mu",5.27)
-  #gaus_sigma = ROOT.RooRealVar("gaus_sigma","width",0.,0.,1.e3)
-  #signal_gaus = ROOT.RooGaussian("signal_gaus","signal, gaussian",mass,gaus_mean,gaus_sigma)
-  mean_m = ROOT.RooRealVar("mean_m","mu",5.27)
-  sigma_m = ROOT.RooRealVar("sigma_m","width",0.)
-  mSig1 = ROOT.RooGaussian("mSig1","signal p.d.f.", mass, mean_m, sigma_m)
-  
-  # Signal (double-sided CB)
-  #sigma_cb = ROOT.RooRealVar("sigma_cb","width",0.0577)
-  #a1 = ROOT.RooRealVar("a1","a1",0.819)
-  #p1 = ROOT.RooRealVar("p1","p1",130.)
-  #a2 = ROOT.RooRealVar("a2","a2",3.10)
-  #p2 = ROOT.RooRealVar("p2","p2",2.04)
-  #signal_cb = ROOT.RooCrystalBall("signal_cb","signal, double-sided CB",mass,gaus_mean,sigma_cb,a1,p1,a2,p2)
-  sigma_cb = ROOT.RooRealVar("sigma_cb","width",0.0577)
-  a1 = ROOT.RooRealVar("a1","a1",0.819)
-  p1 = ROOT.RooRealVar("p1","p1",130.)
-  a2 = ROOT.RooRealVar("a2","a2",3.10)
-  p2 = ROOT.RooRealVar("p2","p2",2.04)
-  mSig3 = ROOT.RooCrystalBall("dcbPdf","DoubleSidedCB",mass,mean_m,sigma_cb,a1,p1,a2,p2)
+  expo_slope = ROOT.RooRealVar(
+      "expo_slope",
+      "slope of exponential",
+      defaults["expo_slope"][idx0],defaults["expo_slope"][idx1],defaults["expo_slope"][idx2])
+#  expo_offset = ROOT.RooRealVar(
+#      "expo_offset",
+#      "offset of exponential",
+#      defaults["expo_offset"][idx0],defaults["expo_offset"][idx1],defaults["expo_offset"][idx2])
+  erfc_mean = ROOT.RooRealVar(
+      "erfc_mean",
+      "mean of the Erfc gaussian",
+      defaults["erfc_mean"][idx0],defaults["erfc_mean"][idx1],defaults["erfc_mean"][idx2])
+  erfc_sigma = ROOT.RooRealVar(
+      "erfc_sigma",
+      "width of the Erfc gaussian",
+      defaults["erfc_sigma"][idx0],defaults["erfc_sigma"][idx1],defaults["erfc_sigma"][idx2])
+  #function = "TMath::Exp(TMath::Abs(expo_slope)*("+var+"-expo_offset))*TMath::Erfc(("+var+"-erfc_mean)/erfc_sigma)"
+  function = "TMath::Exp(TMath::Abs(expo_slope)*("+var+"-erfc_mean))*TMath::Erfc(("+var+"-erfc_mean)/erfc_sigma)"
+  generic_pdf = ROOT.RooGenericPdf(
+      "generic_pdf",
+      "generic pdf (expo*erfc)",
+      function,ROOT.RooArgSet(mass,erfc_mean,erfc_sigma,expo_slope))#,expo_offset))
+  part_num = ROOT.RooRealVar("part_num", "partially reco'ed num",3.e4,0.,1.e7)
+  part_pdf = ROOT.RooExtendPdf("part_pdf","partially reco'ed pdf",generic_pdf,part_num)
 
-  # Fraction of signal pdf (CB:val=0, Gaus:val=1), HACKED: Gaus contribution = 0
-  #frac = ROOT.RooRealVar("frac","frac",0.,0.,0.)
-  #signal = ROOT.RooAddPdf("signal","signal",ROOT.RooArgList(signal_gaus,signal_cb),frac)
-  #N_signal = ROOT.RooRealVar("N_signal","N_signal",8.e4,0.,1.e8)
-  #ex_signal = ROOT.RooExtendPdf("ex_signal","ex_signal",signal,N_signal)
-  frac = ROOT.RooRealVar("frac", "frac", 0., 0., 0.)
-  mSig = ROOT.RooAddPdf("mSig", "mSig", ROOT.RooArgList(mSig1, mSig3), frac)
-  N_mSig = ROOT.RooRealVar("N_mSig", "N_mSig", 80000., 0., 1000000000.)
-  e_mSig = ROOT.RooExtendPdf("e_mSig", "e_mSig", mSig, N_mSig)
+  ################################################################################
+  # MODEL
   
   # Total (S+B) shape
-  total = None
-#  if isMC == True: total = ROOT.RooAddPdf("total","total",ROOT.RooArgSet(ex_signal))
-#  else : total = ROOT.RooAddPdf("total","total",ROOT.RooArgSet(ex_combinatorial,ex_signal,ex_partial))
-#  result = total.fitTo(dataset_selected,ROOT.RooFit.NumCPU(4,ROOT.kTRUE),ROOT.RooFit.Save(),ROOT.RooFit.Extended())
-  if isMC == True: total = ROOT.RooAddPdf("total", "total", ROOT.RooArgSet(e_mSig))
-  else : total = ROOT.RooAddPdf("total", "total", ROOT.RooArgSet(e_mBkg0, e_mSig, e_Erf))
-  fr = total.fitTo(dataset_selected, ROOT.RooFit.NumCPU(4, ROOT.kTRUE), ROOT.RooFit.Save(), ROOT.RooFit.Extended())
+  model = None
+  if isMC==True:             model = ROOT.RooAddPdf("total", "total", ROOT.RooArgSet(signal_pdf))
+  elif add_part_bkgd==False: model = ROOT.RooAddPdf("total", "total", ROOT.RooArgSet(comb_pdf, signal_pdf))
+  else:                      model = ROOT.RooAddPdf("total", "total", ROOT.RooArgSet(comb_pdf, signal_pdf, part_pdf))
   
+  if verbose>2:
+    # Get list of observables
+    print("getObservables")
+    model_obs = model.getObservables(dataset_selected)
+    model_obs.Print("v")
+    # Get list of parameters
+    print("getParameters")
+    model_params = model.getParameters({mass})
+    model_params.Print("v")
+    # Get list of component objects, top-level node
+    print("getComponents")
+    model_comps = model.getComponents()
+    model_comps.Print("v")
+  
+  ################################################################################
+  # FITTING
+
+  # Perform fit
+  result = None
+#  if verbose>0:
+#      result = model.fitTo(
+#          dataset_selected,
+#          ROOT.RooFit.NumCPU(4, ROOT.kTRUE),
+#          ROOT.RooFit.Save(),
+#          ROOT.RooFit.Extended()
+#          )
+#  else:
+  result = model.fitTo(
+    dataset_selected,
+    ROOT.RooFit.NumCPU(4, ROOT.kTRUE),
+    ROOT.RooFit.Save(),
+    ROOT.RooFit.Extended(),
+    ROOT.RooFit.PrintEvalErrors(-1 if verbose<1 else 0 if verbose<4 else 100)
+      )
+  params = result.floatParsFinal()
+
+  if ( write_signal_params==True or write_comb_params==True or write_part_params==True ) and trigger != None :
+    print("WRITE")
+    isMC_str = 'mc' if isMC else 'data'
+    trigger_str = "trigger_none" if trigger == "" else trigger
+
+    # Open file and parse json
+    dct = {}
+    filename = 'parameters.json'
+    try:
+      with open(filename,'r') as f:
+        try:
+          dct = json.load(f)
+        except json.decoder.JSONDecodeError:
+          print("Problem parsing json contained in file:",filename)
+    except FileNotFoundError:
+      print("Problem opening file:",filename)
+
+    # Append to dict
+    if isMC_str not in dct.keys():
+      dct[isMC_str] = {}
+    if region not in dct[isMC_str].keys():
+      dct[isMC_str][region] = {}
+    if trigger_str not in dct[isMC_str][region].keys():
+      dct[isMC_str][region][trigger_str] = {}
+    dct[isMC_str][region][trigger_str]["status"] = result.status()
+    dct[isMC_str][region][trigger_str]["covQual"] = result.covQual()
+    dct[isMC_str][region][trigger_str]["edm"] = result.edm()
+    dct[isMC_str][region][trigger_str]["minNll"] = result.minNll()
+    if write_signal_params==True:
+      for param in params:
+        if param.GetName() in ["signal_num","cb_alphaL","cb_alphaR","cb_mean","cb_nL","cb_nR","cb_sigma"]:
+          dct[isMC_str][region][trigger_str][param.GetName()] = (param.getVal(),param.getVal()-param.getError(),param.getVal()+param.getError())
+    if write_comb_params==True:
+      for param in params:
+        if param.GetName() in ["comb_num","exp_slope"]:
+          dct[isMC_str][region][trigger_str][param.GetName()] = (param.getVal(),param.getVal()-param.getError(),param.getVal()+param.getError())
+    if write_part_params==True:
+      for param in params:
+        if param.GetName() in ["part_num","expo_slope","erfc_mean","erfc_sigma"]: #"expo_offset"
+          dct[isMC_str][region][trigger_str][param.GetName()] = (param.getVal(),param.getVal()-param.getError(),param.getVal()+param.getError())
+
+    # Write json to output file
+    try:
+      with open(filename,'w') as f:
+        try:
+          json.dump(dct,f,indent=4) #ensure_ascii=False,
+        except json.decoder.JSONDecodeError:
+          print("Problem parsing json to file:",filename)
+    except FileNotFoundError:
+      print("Problem writing to file:",filename)
+
+  if verbose>1:
+    
+    # Print details
+    print("RESULT:")
+    result.Print("v")
+
+    # Status:
+    # status = 1    : Covariance was made pos defined
+    # status = 2    : Hesse is invalid
+    # status = 3    : Edm is above max
+    # status = 4    : Reached call limit
+    # status = 5    : Any other failure
+    print("Status = ",result.status())
+
+    # Access basic information
+    print("EDM = ", result.edm())
+    print("-log(L) minimum = ", result.minNll())
+  
+    # Access list of final fit parameter values
+    print("final value of floating parameters")
+    params.Print("v")
+  
+    print("final value of floating parameters AGAIN")
+    print(type(params))
+    print(params)
+    for param in params:
+      if param.GetName() in ["cb_alphaL","cb_alphaR","cb_mean","cb_nL","cb_nR","cb_sigma","signal_num"]:
+        print("PARAM:",param.GetName(),param.getVal(),param.getError())
+    
+    # Extract covariance and correlation matrix as ROOT.TMatrixDSym
+    print("covariance matrix quality",result.covQual())
+    cor = result.correlationMatrix()
+    cov = result.covarianceMatrix()
+    print("covariance matrix:")
+    cov.Print()
+    print("correlation matrix:")
+    cor.Print()
+                
+    # Access correlation matrix elements
+    #print("correlation between signal_num and comb_num is  ", result.correlation(signal_num, comb_num))
+    #print("correlation between signal_num and part_num is  ", result.correlation(signal_num, part_num))
+    #print("correlation between comb_num and part_num is  ", result.correlation(comb_num, part_num))
+
   ################################################################################
   # PLOTTING
   
   # Binning
-  nbins = 75 if region != "LowQ2" else 20
-
+  #nbins = 75 if region != "LowQ2" else 20
+  nbins = 100
+  if isMC==False:
+    #if   dataset_selected.sumEntries() > 10000: nbins = 100
+    #elif dataset_selected.sumEntries() >  7500: nbins =  75
+    #elif dataset_selected.sumEntries() >  5000: nbins =  50
+    #else:                                       nbins =  25
+    if   dataset_selected.sumEntries() > 2000: nbins = 100
+    elif dataset_selected.sumEntries() >  500: nbins =  50
+    else:                                      nbins =  25
+  
   # Plot residuals panel
   draw_residuals = True
 
   title = "An example title"
   frame_main = mass.frame(ROOT.RooFit.Title(title),ROOT.RooFit.Bins(nbins))
 
-  # Colors
-  index_erf = 1756#ROOT.TColor.GetFreeColorIndex()
-  index_sig = 1757#ROOT.TColor.GetFreeColorIndex()+1
-  index_exp = 1758#ROOT.TColor.GetFreeColorIndex()+2
-  color_erf = ROOT.TColor(index_erf,  27./255.,158./255.,119./255.)
-  color_sig = ROOT.TColor(index_sig, 217./255., 95./255.,  2./255.)
-  color_exp = ROOT.TColor(index_exp, 117./255.,112./255.,179./255.)
+#  # Colors
+#  index_erf = 1756#ROOT.TColor.GetFreeColorIndex()
+#  index_sig = 1757#ROOT.TColor.GetFreeColorIndex()+1
+#  index_exp = 1758#ROOT.TColor.GetFreeColorIndex()+2
+#  color_erf = ROOT.TColor(index_erf,  27./255.,158./255.,119./255.)
+#  color_sig = ROOT.TColor(index_sig, 217./255., 95./255.,  2./255.)
+#  color_exp = ROOT.TColor(index_exp, 117./255.,112./255.,179./255.)
 
   # Data
   dataset_selected.plotOn(
       frame_main,
       ROOT.RooFit.XErrorSize(0),
-      #ROOT.RooFit.Name("data"),
-      ROOT.RooFit.Name("plotmc"),
+      ROOT.RooFit.Name("data"),
       )
   # Total pdf
-  total.plotOn(
+  model.plotOn(
       frame_main,
       ROOT.RooFit.LineColor(ROOT.kAzure+1),
-      ROOT.RooFit.Name("totalpdf"),
+      ROOT.RooFit.Name("model"),
       )
   # Combinatorial pdf
-  if isMC==True:
-    total.plotOn(
+  if isMC==False:
+    model.plotOn(
       frame_main,
-      #ROOT.RooFit.Components("ex_combinatorial"),
-      ROOT.RooFit.Components("e_mBkg0"),
+      ROOT.RooFit.Components("comb_pdf"),
       ROOT.RooFit.DrawOption("FL"),
       ROOT.RooFit.LineColor(ROOT.kAzure+8),
-      ROOT.RooFit.FillColor(ROOT.kViolet+2),#color_exp),#index_exp),
+      ROOT.RooFit.FillColor(ROOT.kViolet+6),#1758),#color_exp),#index_exp),
       ROOT.RooFit.FillStyle(1004),
-      #ROOT.RooFit.Name("combinatorial"),
-      ROOT.RooFit.Name("bkg"),
+      ROOT.RooFit.Name("comb"),
       )
   # Signal pdf
-  total.plotOn(
+  model.plotOn(
       frame_main,
-      #ROOT.RooFit.Components(ex_signal),
-      ROOT.RooFit.Components(e_mSig),
+      ROOT.RooFit.Components(signal_pdf),
       ROOT.RooFit.DrawOption("FL"),
       ROOT.RooFit.LineColor(ROOT.kAzure+5),
-      ROOT.RooFit.FillColor(ROOT.kOrange+2),#color_sig),#index_sig),
+      ROOT.RooFit.FillColor(ROOT.kOrange+2),#1757),#color_sig),#index_sig),
       ROOT.RooFit.FillStyle(1004),
-      #ROOT.RooFit.Name("signal"),
-      ROOT.RooFit.Name("signalpdf"),
+      ROOT.RooFit.Name("signal"),
       )
-  # Partially reco'ed pdf
-  if isMC==False:
-    total.plotOn(
+#  # Partially reco'ed pdf
+  if isMC==False and add_part_bkgd==True:
+    model.plotOn(
       frame_main,
-      #ROOT.RooFit.Components("ex_partial"),
-      ROOT.RooFit.Components("e_Erf"),
+      ROOT.RooFit.Components("part_pdf"),
       ROOT.RooFit.DrawOption("FL"),
       ROOT.RooFit.LineColor(ROOT.kAzure+10),
-      ROOT.RooFit.FillColor(ROOT.kGreen+3),#color_erf),#index_erf),
+      ROOT.RooFit.FillColor(ROOT.kGreen+3),#1756),#color_erf),#index_erf),
       ROOT.RooFit.FillStyle(1004),
-      #ROOT.RooFit.Name("partial"),
-      ROOT.RooFit.Name("erf"),
+      ROOT.RooFit.Name("part"),
       )
-  # Replot data to be on top?
-  dataset_selected.plotOn(frame_main,ROOT.RooFit.XErrorSize(0))
 
+    # Replot data to be on top?
   frame_main.GetXaxis().SetLabelSize(0.05)
   frame_main.GetXaxis().SetTitleSize(0.05)
+  dataset_selected.plotOn(frame_main,ROOT.RooFit.XErrorSize(0))
   
   canvas = ROOT.TCanvas("fit","fit",800,800)
   # canvas.Divide(2,2)
@@ -181,9 +470,9 @@ def fit_new() :
     
   dummy_frame = mass.frame(ROOT.RooFit.Title("dummy frame"),ROOT.RooFit.Bins(nbins))
   dataset_selected.plotOn(dummy_frame,ROOT.RooFit.XErrorSize(0))
-  total.plotOn(dummy_frame)
+  model.plotOn(dummy_frame)
+
   h_residuals_mass = dummy_frame.pullHist()
-    
   frame_residuals = mass.frame(ROOT.RooFit.Title("residuals"),ROOT.RooFit.Bins(nbins))
   frame_residuals.GetYaxis().SetTitle("Pull")
   frame_residuals.GetYaxis().CenterTitle(True)
@@ -201,7 +490,6 @@ def fit_new() :
   pad1.SetFillColor(0)
   pad1.SetBottomMargin(0.02)
   pad1.SetBorderMode(0)
-  pad1.Draw()
   
   # Residuals (lower) panel
   pad2 = ROOT.TPad("pad2","pad2",0,0,1,0.22)
@@ -210,10 +498,13 @@ def fit_new() :
   pad2.SetBottomMargin(0.3)
   pad2.SetBorderMode(0)
   pad2.SetFillColor(0)
+
+  pad1.Draw()
   pad2.Draw()
-  
+
   # Draw residuals and lines
   pad2.cd()
+  frame_residuals.Draw("same")
   zero_line = ROOT.TF1("zero_line","0",0,1000)
   zero_line.SetLineStyle(1)
   zero_line.SetLineWidth(2)
@@ -222,10 +513,9 @@ def fit_new() :
   # TF1 *f_1 = new TF1("f_1", "1", 0, 116);  f_1.SetLineColor(kBlue); f_1.SetLineStyle(7)
   # TF1 *f_2 = new TF1("f_2", "-1", 0, 116); f_2.SetLineColor(kBlue); f_2.SetLineStyle(7)
   # f_1.Draw("same") f_2.Draw("same")
-  frame_residuals.Draw("same")
-  pad1.cd()
   
   # Draw main frame
+  pad1.cd()
   frame_main.GetXaxis().SetNdivisions(504)
   frame_main.Draw()
   # canvas.cd(1).SetLogy(1)
@@ -239,43 +529,47 @@ def fit_new() :
   ################################################################################
   # DIAGNOSTIC
 
-#  sigma = 2.
-#  lower = gaus_mean.getVal() - sigma*sigma_cb.getVal()
-#  upper = gaus_mean.getVal() + sigma*sigma_cb.getVal()
-#  mass.setRange("signal_frac",lower,upper) 
-# 
-#  signal_window = ex_signal.createIntegral(mass,ROOT.RooFit.NormSet(mass),ROOT.RooFit.Range("signal_window"))
-#  total_window = total.createIntegral(mass,ROOT.RooFit.NormSet(mass),ROOT.RooFit.Range("signal_window"))
-#  
-#  print()
-#  print(f"Original number of events processed: {dataset.sumEntries():.1f}")
-#  print(f"Selected number of events processed: {dataset_selected.sumEntries():.1f}")
-#  print()
-#  signal_window_frac = signal_window.getVal()
-#  signal_N = N_signal.getVal()
-#  print(f"Fraction of signal within +/-{sigma:.0f} sigma window: {signal_window_frac:.2f}")
-#  print(f"Signal yield within +/-{sigma:.0f} sigma window: {signal_N:.1f}")
-#  print()
-##  total_window_frac = total_window.getVal()
-##  N_total = N_total.getVal()
-##  print(f"Fraction of signal within +/-{sigma:.0f} sigma window: {total_window_frac:.2f}")
-##  print(f"Signal yield within +/-{sigma:.0f} sigma window: {N_total:.1f}")
+  sigma = 2.
+  lower = cb_mean.getVal() - sigma*cb_sigma.getVal()
+  upper = cb_mean.getVal() + sigma*cb_sigma.getVal()
+  mass.setRange("signal_window",lower,upper) 
+ 
+  signal_window = signal_pdf.createIntegral(mass,ROOT.RooFit.NormSet(mass),ROOT.RooFit.Range("signal_window"))
+  total_window = model.createIntegral(mass,ROOT.RooFit.NormSet(mass),ROOT.RooFit.Range("signal_window"))
+  
+  print()
+  print(f"Original number of events processed: {dataset.sumEntries():.1f}")
+  print(f"Selected number of events processed: {dataset_selected.sumEntries():.1f}")
+  print()
+  signal_frac = signal_window.getVal()
+  print(f"Fraction of signal within +/-{sigma:.0f} sigma window: {signal_frac:.2f}")
+  print(f"Signal yield within +/-{sigma:.0f} sigma window: {signal_num.getVal():.1f}")
+  print()
+  total_frac = total_window.getVal()
+  print(f"Fraction of signal within +/-{sigma:.0f} sigma window: {total_frac:.2f}")
+  print(f"Signal yield within +/-{sigma:.0f} sigma window: {model.getVal():.1f}")
 
   ################################################################################
   # LEGEND
-  
-  legend = ROOT.TLegend(0.65,0.65,0.88,0.88)
+  ylower = 0.63 if isMC==False else 0.73 if add_part_bkgd==True else 0.78
+  legend = ROOT.TLegend(0.63, ylower, 0.88, 0.88)
 
-  rounded_nearest = 0#int(N_signal.getVal())
+  rounded_nearest = int(signal_num.getVal())
   signal = f"{rounded_nearest:.0f}"
-  b_rounded = 0#int(ex_signal.getVal())
-  serr   = str(b_rounded)
-  #soverb = str((signal_window.getVal()*N_signal.getVal())/math.sqrt((total_window.getVal()*dataset.sumEntries())))
-  #soberb = str((signal_window.getVal()*N_signal.getVal())/(total_window.getVal()*mc.sumEntries()-signal_window.getVal()*N_signal.getVal()))
-  #TString sb(soverb)
-  #TString soberbstr(soberb)
-  #TString tt(std::to_string(mc.sumEntries()))
+  soverb = str( ( signal_window.getVal() * signal_num.getVal() ) / math.sqrt( total_window.getVal() * dataset.sumEntries() ) )
+  soberb = str( ( signal_window.getVal() * signal_num.getVal() ) / ( total_window.getVal() * dataset.sumEntries() - signal_window.getVal() * signal_num.getVal() ) )
 
+  print()
+  print("signal_num.getVal()",signal_num.getVal())
+  print("signal_num.getAsymErrorHi()",signal_num.getAsymErrorHi())
+  print("signal_num.getAsymErrorLo()",signal_num.getAsymErrorLo())
+  print("signal_window.getVal()",signal_window.getVal())
+  print("total_window.getVal()",total_window.getVal())
+  print("model.getVal()",model.getVal())
+  print("dataset.sumEntries()",dataset.sumEntries())
+  print("soverb",soverb) # S/sqrt(S+B) (2sigma)
+  print("soberb",soberb) # S/B (2sigma)
+  
   legend.SetTextFont(42)
   legend.SetTextSize(0.038)
   legend.SetBorderSize(0)
@@ -290,15 +584,37 @@ def fit_new() :
 #  #legend.AddEntry("","S/B(2#sigma):"+soberbstr,"")
 #  #legend.AddEntry("","Total Entries =  "+tt,"")
 
-  legend.AddEntry("plotmc", "Data", "ep")
-  legend.AddEntry("totalpdf", "S+B shape", "l")
+  legend.AddEntry("data", "Data", "ep")
+  legend.AddEntry("model", "Total", "l")
   legend.AddEntry("signal", "Signal ("+signal+")", "f") # "Signal ("+s+"#pm"+TString(serr)+")", "f")
-  legend.AddEntry("erf", "Bkgd (part.)", "f")
-  legend.AddEntry("bkg", "Bkgd (comb.)", "f")
+  if isMC==False:
+    #legend.AddEntry("part", "Bkgd (part.)"+str(dataset_selected.sumEntries()), "f")
+    if add_part_bkgd==True: legend.AddEntry("part", "Bkgd (part.)", "f")
+    legend.AddEntry("comb", "Bkgd (comb.)", "f")
   legend.Draw()
 
   # Save canvas
-  canvas.SaveAs("plots/"+tag+"/fitted_"+tag+"_"+sample+"_"+var+"_new.pdf")
+  canvas.SaveAs("plots/"+tag+"/fitted_"+tag+"_"+sample+"_"+var+str("_"+trigger if trigger is not None else "")+".pdf")
+
+################################################################################
+# UTILITY 
+################################################################################
+    
+# Define region
+def region(sample):
+  regions = ["LowQ2","Jpsi","Psi2S"]
+  _region = None
+  if     "Kee" in sample: _region = regions[0] # MC sample
+  elif "LowQ2" in sample: _region = regions[0] # Data sample
+  elif  "Jpsi" in sample: _region = regions[1] # Data or MC sample
+  elif "Psi2S" in sample: _region = regions[2] # Data or MC sample
+  else:                   _region = regions[0] # Data sample
+  return _region
+
+# MC or data? (Switch off bkgd shapes for former)
+def isMC(sample):
+    _isMC = "BuToK" in sample
+    return _isMC
 
 ################################################################################
 # MAIN
@@ -308,31 +624,72 @@ if __name__ == "__main__":
     print("Starting...")
 
     # Input variable to be fitted
-    var = "b_mass"
-
-    # MC or data? (Switch off bkgd shapes for former|)
-    isMC = False
-
-    # Q2 region
-    regions = ["LowQ2","Jpsi","Psi2S"]
-    region = regions[1]
+    _var = "b_mass"
 
     # Production tag
-    tag = ["2022Sep05","2022Oct12"][1]
+    _tag = ["2022Sep05","2022Oct12"][1]
 
     # Sample being considered
-    sample = [
-        "BuToKee",
+    samples = [
         "BuToKJpsi_Toee",
         "BuToKPsi2S_Toee",
-        "Run2022",
+        "BuToKee",
         "Run2022_Jpsi",
-        ][-1]
+        "Run2022_Psi2S",
+        "Run2022_LowQ2",
+        ]
 
-    # Override region if using an MC sample
-    if   "BuToKee" in sample:         region = regions[0]
-    elif "BuToKJpsi_Toee" in sample:  region = regions[1]
-    elif "BuToKPsi2S_Toee" in sample: region = regions[2]
+    triggers = [
+        "",
+        "trigger_OR",
+        #"L1_11p0_HLT_6p5",
+        #"L1_10p5_HLT_6p5",
+        #"L1_10p5_HLT_5p0",
+        #"L1_8p5_HLT_5p0",
+        #"L1_8p0_HLT_5p0",
+        #"L1_7p0_HLT_5p0",
+        #"L1_6p5_HLT_4p5",
+        #"L1_6p0_HLT_4p0",
+        #"L1_5p5_HLT_6p0",
+        #"L1_5p5_HLT_4p0",
+    ]
 
-    fit_new()
+    # Test cases
+    #sample = samples[-2]
+    #fit_new(isMC=isMC,region="Jpsi",sample="Jpsi",tag=_tag,trigger="trigger_OR",var=_var)
+    #fit_new(isMC=isMC,region="Jpsi",sample="Jpsi",tag=_tag,trigger="L1_10p5_HLT_6p5",var=_var,verbose=0)
+    #fit_new(isMC=isMC,region="Jpsi",sample="Jpsi",tag=_tag,trigger="L1_5p5_HLT_4p0",var=_var)
+
+    # Step-by-step procedure to constrain shapes
+    # 1) run over signal, determine signal shape (signal:write)
+    # 2) run over signal again, check signal shape (signal:read,fix)
+    # 3) run over data, fixed signal shape, determine comb params (signal:read,fix, comb:write)
+    # 4) run over data, fixed signal and comb shapes, check part shape (signal:read,fix, comb:read,fix)
+    # 5) run over data, fixed signal and comb shapes, determine part shape (signal:read,fix, comb:read,fix, part:add,write)
+        
+    # Loop
+    for _sample in samples:#[:1]:
+        _isMC = isMC(_sample)
+        _region = region(_sample)
+        for _trigger in triggers:#[:1]:
+            fit_new(
+                isMC=_isMC,
+                region=_region,
+                sample=_sample,
+                tag=_tag,
+                trigger=_trigger,
+                var=_var,
+                verbose=5,
+                read_signal_params= True,
+                write_signal_params=True,
+                fix_signal_params=  True,
+                read_comb_params=   True,
+                write_comb_params=  True,
+                fix_comb_params=    True,
+                add_part_bkgd=      True,
+                read_part_params=   True,
+                write_part_params=  True,
+                fix_part_params=    True,
+                )
+
     print("Finished...")
