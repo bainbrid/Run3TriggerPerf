@@ -87,7 +87,7 @@ void fit_new() {
   //TString tag = "2022Sep05";
   TString tag = "2022Oct12";
 
-  TString sample = "Run2022_Jpsi";
+  //TString sample = "Run2022_Jpsi";
   //TString sample = "Run2022D_rare";
   
   //TString sample = "Run2022";
@@ -95,13 +95,13 @@ void fit_new() {
   //TString sample = "Run2022_rare_riccardo";
   //TString sample = "Run2022_Psi2S";
 
-  //TString sample = "BuToKJpsi_Toee";
+  TString sample = "BuToKJpsi_Toee";
   //TString sample = "BuToKPsi2S_Toee";
   //TString sample = "BuToKee";
 
   TString var = "b_mass";
   
-  //#define isMC // switch off bkgd shapes
+#define isMC // switch off bkgd shapes
   //#define isRARE // rare vs J/psi
   //#define isPsi2S // rare vs J/psi
   
@@ -283,7 +283,6 @@ void fit_new() {
   frame_residuals_mass_Z->SetTitle("");
   frame_residuals_mass_Z->GetXaxis()->SetLabelSize(0.1);
   frame_residuals_mass_Z->GetXaxis()->SetTitleSize(0.1);
-
 
   TPad *pad1 = new TPad("pad1","pad1",0,0.22,1,1);
   TPad *pad2 = new TPad("pad2","pad2",0,0,1,0.22);
