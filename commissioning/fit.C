@@ -242,7 +242,7 @@ void fit() {
   massLeg_Jpsi->AddEntry("plotmc", "Data", "ep");
   massLeg_Jpsi->AddEntry("totalpdf", "Total", "l");
   massLeg_Jpsi->AddEntry("signal", "B+- Signal Nsig = "+s, "f");
-  massLeg_Jpsi->AddEntry("erf", "Combinatorial background", "f");
+  massLeg_Jpsi->AddEntry("erf", es"Combinatorial background", "f");
   massLeg_Jpsi->AddEntry("bkg", "exp background", "f");
   massLeg_Jpsi->AddEntry("","S/#sqrt{S+B} in signal region ( 2 #sigma ) =  "+sb,"");
   massLeg_Jpsi->AddEntry("","S/B in signal region ( 2 #sigma ) =  "+soberbstr,"");
