@@ -189,7 +189,7 @@ for dataset,samples in dct[tag].items() :
                     & (np.abs(batch['e1_reco_eta'])<1.2) & (np.abs(batch['e2_reco_eta'])<1.2) # ele eta
                     & (batch['e1_reco_pt']>5.) & (batch['e2_reco_pt']>5.) # ele pT
                     & mll_cut # mll region
-                    & (batch['b_k_pt']>1.) # kaon pT ???
+                    & (batch['b_k_pt']>1.0) # kaon pT ???
                     & (batch['b_cos2D']>0.8) # cut-based ???
                     & (batch['b_svprob']>0.01) # cut-based
                     & (batch['b_pt']>15.) # cut-based
@@ -220,7 +220,7 @@ for dataset,samples in dct[tag].items() :
                 # CHOOSE CUTS
                 ##########
                 
-                cuts = cuts_rob#cuts_riccardo_lowq2
+                cuts = cuts_rob
 
                 ##########
                 # TRIGGERS
