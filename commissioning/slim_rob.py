@@ -30,9 +30,9 @@ dct = {
         "2022Oct12_BuToKJpsi_Toee":["2022Oct12_BuToKJpsi_Toee"],
         "2022Oct12_BuToKPsi2S_Toee":["2022Oct12_BuToKPsi2S_Toee"],
         "2022Oct12_BuToKee":["2022Oct12_BuToKee"],
-        #"2022Oct12_Run2022_Jpsi":["2022Oct12_Run2022C","2022Oct12_Run2022Dv1","2022Oct12_Run2022Dv2"],
-        #"2022Oct12_Run2022_Psi2S":["2022Oct12_Run2022C","2022Oct12_Run2022Dv1","2022Oct12_Run2022Dv2"],
-        #"2022Oct12_Run2022_LowQ2":["2022Oct12_Run2022C","2022Oct12_Run2022Dv1","2022Oct12_Run2022Dv2"],
+        "2022Oct12_Run2022_Jpsi":["2022Oct12_Run2022C","2022Oct12_Run2022Dv1","2022Oct12_Run2022Dv2"],
+        "2022Oct12_Run2022_Psi2S":["2022Oct12_Run2022C","2022Oct12_Run2022Dv1","2022Oct12_Run2022Dv2"],
+        "2022Oct12_Run2022_LowQ2":["2022Oct12_Run2022C","2022Oct12_Run2022Dv1","2022Oct12_Run2022Dv2"],
     }
 }
 
