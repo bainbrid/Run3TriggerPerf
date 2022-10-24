@@ -556,8 +556,8 @@ def fit_new(
 
   rounded_nearest = int(signal_num.getVal())
   signal = f"{rounded_nearest:.0f}"
-  soverb = str( ( signal_window.getVal() * signal_num.getVal() ) / math.sqrt( total_window.getVal() * dataset.sumEntries() ) )
-  soberb = str( ( signal_window.getVal() * signal_num.getVal() ) / ( total_window.getVal() * dataset.sumEntries() - signal_window.getVal() * signal_num.getVal() ) )
+#  soverb = str( ( signal_window.getVal() * signal_num.getVal() ) / math.sqrt( total_window.getVal() * dataset.sumEntries() ) )
+#  soberb = str( ( signal_window.getVal() * signal_num.getVal() ) / ( total_window.getVal() * dataset.sumEntries() - signal_window.getVal() * signal_num.getVal() ) )
 
   print()
   print("signal_num.getVal()",signal_num.getVal())
@@ -567,8 +567,8 @@ def fit_new(
   print("total_window.getVal()",total_window.getVal())
   print("model.getVal()",model.getVal())
   print("dataset.sumEntries()",dataset.sumEntries())
-  print("soverb",soverb) # S/sqrt(S+B) (2sigma)
-  print("soberb",soberb) # S/B (2sigma)
+  #print("soverb",soverb) # S/sqrt(S+B) (2sigma)
+  #print("soberb",soberb) # S/B (2sigma)
   
   legend.SetTextFont(42)
   legend.SetTextSize(0.038)
@@ -642,17 +642,21 @@ if __name__ == "__main__":
     triggers = [
         "",
         "trigger_OR",
-        #"L1_11p0_HLT_6p5",
-        #"L1_10p5_HLT_6p5",
-        #"L1_10p5_HLT_5p0",
-        #"L1_8p5_HLT_5p0",
-        #"L1_8p0_HLT_5p0",
-        #"L1_7p0_HLT_5p0",
-        #"L1_6p5_HLT_4p5",
-        #"L1_6p0_HLT_4p0",
-        #"L1_5p5_HLT_6p0",
-        #"L1_5p5_HLT_4p0",
-    ]
+        "L1_11p0_HLT_6p5",
+        "L1_10p5_HLT_6p5",
+        "L1_10p5_HLT_5p0",
+        "L1_8p5_HLT_5p0",
+        "L1_8p0_HLT_5p0",
+        "L1_7p0_HLT_5p0",
+        "L1_6p5_HLT_4p5",
+        "L1_6p0_HLT_4p0",
+        "L1_5p5_HLT_6p0",
+        "L1_5p5_HLT_4p0",
+        #"HLT_DoubleEle6p5",
+        #"HLT_DoubleEle5p0",
+        #"HLT_DoubleEle4p5",
+        #"HLT_DoubleEle4p0",
+        ]
 
     # Test cases
     #sample = samples[-2]
@@ -681,14 +685,14 @@ if __name__ == "__main__":
                 var=_var,
                 verbose=5,
                 read_signal_params= True,
-                write_signal_params=True,
+                write_signal_params=True, # Just update signal_num
                 fix_signal_params=  True,
                 read_comb_params=   True,
-                write_comb_params=  True,
+                write_comb_params=  True, # Just update comb_num
                 fix_comb_params=    True,
                 add_part_bkgd=      True,
                 read_part_params=   True,
-                write_part_params=  True,
+                write_part_params=  True, # Just update part_num
                 fix_part_params=    True,
                 )
 
