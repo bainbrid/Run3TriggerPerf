@@ -90,11 +90,11 @@ void fit() {
   TF1 *f_1 = new TF1("f_1", "1", 0, 116);  f_1->SetLineColor(kBlue); f_1->SetLineStyle(7);
   TF1 *f_2 = new TF1("f_2", "-1", 0, 116); f_2->SetLineColor(kBlue); f_2->SetLineStyle(7);
 
-  RooRealVar mass("B_mass", "Mass [J/#psiK] [GeV]", 4.700, 5.7);
+  RooRealVar mass("b_mass", "Mass [J/#psiK] [GeV]", 4.700, 5.7);
 
   int Bc_bins = 50;
 
-  TFile *ntuple_mc = new TFile("./data/slimmed.root"); 
+  TFile *ntuple_mc = new TFile("./output/slimmed/2022Oct12/slimmed_2022Oct12_BuToKJpsi_Toee.root"); 
 
   TTree* tree_mc   = (TTree*) ntuple_mc->Get("tree");
 
@@ -117,7 +117,7 @@ void fit() {
   RooRealVar meanErf ("meanErf", "mean of the Erf gaussian", 5.224, 5.100, 5.30);  //5300
   RooRealVar sigmaErf ("sigmaErf", "width of the Erf gaussian", 0.0386, 0.010, 0.040); // 200
   RooRealVar ErfOffset ("ErfOffset", "Offset of Erf exponential", 5.100, 5.000, 5.200); //4930.
-  RooGenericPdf Erf("Erf", "Error Function", "TMath::Exp(TMath::Abs(ErfSlope)*(B_mass-ErfOffset))*TMath::Erfc((B_mass-meanErf)/sigmaErf)", RooArgSet(mass, meanErf, sigmaErf,ErfSlope,ErfOffset));
+  RooGenericPdf Erf("Erf", "Error Function", "TMath::Exp(TMath::Abs(ErfSlope)*(b_mass-ErfOffset))*TMath::Erfc((b_mass-meanErf)/sigmaErf)", RooArgSet(mass, meanErf, sigmaErf,ErfSlope,ErfOffset));
 //  RooGenericPdf Erf("Erf", "Error Function", "TMath::Erfc((mass-meanErf)/sigmaErf)", RooArgSet(mass, meanErf, sigmaErf, ErfOffset));
 
   RooRealVar N_Erf ("N_Erf", "N_Erf", 30000, 0, 10000000);
@@ -208,7 +208,7 @@ void fit() {
 #endif
   frame_main_fit1->GetXaxis()->SetNdivisions(504);
   frame_main_fit1->Draw(); //c_mass_1->cd(1)->SetLogy(1);
-  c_mass_1->SaveAs("plots/canvas_mass.pdf");
+  c_mass_1->SaveAs("output/plots/canvas_mass.pdf");
 
   mass.setRange("signal3", mean_m.getVal() - 2*sigma_cb.getVal(),mean_m.getVal() + 2*sigma_cb.getVal()) ;
   //mass.setRange("signal3", 5.3,5.5) ;
@@ -242,7 +242,7 @@ void fit() {
   massLeg_Jpsi->AddEntry("plotmc", "Data", "ep");
   massLeg_Jpsi->AddEntry("totalpdf", "Total", "l");
   massLeg_Jpsi->AddEntry("signal", "B+- Signal Nsig = "+s, "f");
-  massLeg_Jpsi->AddEntry("erf", es"Combinatorial background", "f");
+  massLeg_Jpsi->AddEntry("erf", "Combinatorial background", "f");
   massLeg_Jpsi->AddEntry("bkg", "exp background", "f");
   massLeg_Jpsi->AddEntry("","S/#sqrt{S+B} in signal region ( 2 #sigma ) =  "+sb,"");
   massLeg_Jpsi->AddEntry("","S/B in signal region ( 2 #sigma ) =  "+soberbstr,"");
