@@ -1,4 +1,6 @@
 import json
+import math
+import numpy as np
 
 ################################################################################
 # Methods ...
@@ -89,13 +91,25 @@ def print_bkgd_table(dct,triggers,region="Jpsi",partial=True):
         print_bkgd_row(dct,trigger,isMC=isMC,region=region,partial=partial)
     print()
 
+def print_comparison_header():
+    print(
+        "Trigger"+
+        "      Lint [fb]"+
+        "   AxE [1e-4]"
+        "      Exp. counts"+
+        "      Obs. counts"+
+        "         Ratio"
+        )
+
 def print_comparison_table(dct,triggers,region="Jpsi"):
     print("Comparison for observed (data) and expected (MC) in region",region)
+    print_comparison_header()
     bf = {
         "Jpsi":0.001*0.06,
         "Psi2S":6.2e-4*7.9e-3,
         "LowQ2":4.5e-7,
     }.get(region)
+    ratios = []
     for trigger,lumi in triggers:
         data = dct["data"][region][trigger]
         mc   = dct["mc"][region][trigger]
@@ -109,8 +123,13 @@ def print_comparison_table(dct,triggers,region="Jpsi"):
         exp_err = exp * (eff_err/eff)
         print(f"{exp:7.1f}+/-{exp_err:5.1f}, ",end="")
         obs,obs_err = val_err(data,"signal_num")
-        print(f'{obs:7.1f}+/-{obs_err:5.1f}, ',end='')
+        print(f'{obs:7.1f}+/-{obs_err:5.1f} ',end='')
+        ratio = obs/exp if exp > 0. else 0.
+        ratio_err = math.sqrt(exp)/exp * ratio if exp > 0. else 0.
+        print(f'{ratio:5.2f}+/-{ratio_err:5.2f} ',end='')
         print()
+        ratios.append((ratio,ratio_err))
+    return ratios
 
 def summary(filename,triggers=None) :
 
@@ -126,7 +145,7 @@ def summary(filename,triggers=None) :
           print("Problem parsing json contained in file:",filename)
     except FileNotFoundError:
       print("Problem opening file:",filename)
-    
+
     # Check if MC content is there
     if "mc" not in dct:
         print("Incorrect json format...")
@@ -134,39 +153,48 @@ def summary(filename,triggers=None) :
 
     # Tables ...
     _partial=True
-    #print_signal_table(dct,triggers,isMC="mc",region="Jpsi")
-    #print_signal_table(dct,triggers,isMC="data",region="Jpsi")
-    #print_bkgd_table(dct,triggers,region="Jpsi",partial=_partial)
-    #print_signal_table(dct,triggers,isMC="mc",region="Psi2S")
-    #print_signal_table(dct,triggers,isMC="data",region="Psi2S")
-    #print_bkgd_table(dct,triggers,region="Psi2S",partial=_partial)
-    #print_signal_table(dct,triggers,isMC="mc",region="LowQ2")
-    #print_signal_table(dct,triggers,isMC="data",region="LowQ2")
-    #print_bkgd_table(dct,triggers,region="LowQ2",partial=_partial)
+    print_signal_table(dct,triggers,isMC="mc",region="Jpsi")
+    print_signal_table(dct,triggers,isMC="data",region="Jpsi")
+    print_bkgd_table(dct,triggers,region="Jpsi",partial=_partial)
+    print_signal_table(dct,triggers,isMC="mc",region="Psi2S")
+    print_signal_table(dct,triggers,isMC="data",region="Psi2S")
+    print_bkgd_table(dct,triggers,region="Psi2S",partial=_partial)
+    print_signal_table(dct,triggers,isMC="mc",region="LowQ2")
+    print_signal_table(dct,triggers,isMC="data",region="LowQ2")
+    print_bkgd_table(dct,triggers,region="LowQ2",partial=_partial)
 
     # Comparison
-    print_comparison_table(dct,triggers,region="Jpsi")
-    print_comparison_table(dct,triggers,region="Psi2S")
+    ratios_jpsi = print_comparison_table(dct,triggers,region="Jpsi")
+    ratios_psi2s = print_comparison_table(dct,triggers,region="Psi2S")
     print_comparison_table(dct,triggers,region="LowQ2")
 
+    print("Double ratio: [obs/exp]_Psi2S / [obs/exp]_Jpsi")
+    for trg,jpsi,psi2s in zip(triggers,ratios_jpsi,ratios_psi2s):
+        ratio = psi2s[0]/jpsi[0] if jpsi[0]>0. else 0.
+        ratio_err  = ( jpsi[1]/ jpsi[0])**2. if  jpsi[0]>0. else 0.
+        ratio_err += (psi2s[1]/psi2s[0])**2. if psi2s[0]>0. else 0.
+        ratio_err = ratio * np.sqrt(ratio_err)
+        #print(trg,ratio,ratio_err)
+        print(f'Trigger: {trg[0]:16s}, Lumi: {trg[1]:4.2f}, Ratio: {ratio:4.2f} +/- {ratio_err:4.2f}')
+    
 ################################################################################
 # Main ...
 
 if __name__ == "__main__":
 
-    filename = 'parameters.json'
+    filename = 'output/params/2022Oct12/parameters.json'
     triggers = [
-        ("trigger_none",7.36),
-#        ("trigger_OR",7.10),
-#        ("L1_11p0_HLT_6p5",7.09),
-#        ("L1_10p5_HLT_6p5",7.04),
-#        ("L1_10p5_HLT_5p0",6.28),
-#        ("L1_8p5_HLT_5p0",6.18),
-#        ("L1_8p0_HLT_5p0",5.60),
-#        ("L1_7p0_HLT_5p0",2.00),
-#        ("L1_6p5_HLT_4p5",1.78),
-#        ("L1_6p0_HLT_4p0",0.65),
-#        ("L1_5p5_HLT_6p0",0.15),
-#        ("L1_5p5_HLT_4p0",0.00),
+#        ("trigger_none",7.36),
+        ("trigger_OR",7.10),
+        ("L1_11p0_HLT_6p5",7.09),
+        ("L1_10p5_HLT_6p5",7.04),
+        ("L1_10p5_HLT_5p0",6.28),
+        ("L1_8p5_HLT_5p0",6.18),
+        ("L1_8p0_HLT_5p0",5.60),
+        ("L1_7p0_HLT_5p0",2.00),
+        ("L1_6p5_HLT_4p5",1.78),
+        ("L1_6p0_HLT_4p0",0.65),
+        ("L1_5p5_HLT_6p0",0.15),
+        ("L1_5p5_HLT_4p0",0.00),
     ]
     summary(filename,triggers=triggers)
