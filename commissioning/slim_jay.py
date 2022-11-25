@@ -7,7 +7,7 @@ import uproot
 starttime = time.time()
 
 # Input ntuple
-file_input = uproot.open("./ntuples/jay/LowMassQsquared20220819.root:nano/tree",
+file_input = uproot.open("./input/ntuples/jay/LowMassQsquared20220819.root:nano/tree",
                          file_handler=uproot.MultithreadedFileSource,
                          num_workers=100)
 
