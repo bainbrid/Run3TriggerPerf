@@ -1,3 +1,7 @@
+##############################
+# Run with: python3 fit_new.py
+##############################
+
 import ROOT
 import math
 import json
@@ -36,31 +40,35 @@ def fit_new(
   ROOT.gStyle.SetOptStat(0)
   ROOT.gStyle.SetOptFit(0)
 
-  input_path = "./slimmed/"+tag+"/slimmed_"+tag+"_"+sample+".root"
+  input_path = "./output/slimmed/"+tag+"/slimmed_"+tag+"_"+sample+".root"
   input_file = ROOT.TFile(input_path,"READ")
   tree = input_file.Get("tree")
   print("input_file:",input_path)
   print("IsValid?",not input_file.IsZombie())
   
   # Trigger and fitted variables
+  variables = None
   mass = ROOT.RooRealVar(var,"Mass [GeV]",4.7,5.7)
+  weight = ROOT.RooRealVar("weight","Weight",0.,10.)
   if trigger != None and trigger != "":
     trg = ROOT.RooRealVar(trigger,"Trigger result",0.,1.)
-    variables = ROOT.RooArgSet(mass,trg)
+    variables = ROOT.RooArgSet(mass,weight,trg)
     print("Trigger variable:",trigger)
   else:
-    variables = ROOT.RooArgSet(mass)
+    variables = ROOT.RooArgSet(mass,weight)
   print("Fitted variable: ",var)
-  
-  # Build (and select) dataset
-  dataset = ROOT.RooDataSet("dataset","dataset",tree,variables)
+  print("Weight variable: ",weight)
 
+  # Build (and select) dataset
+  dataset = ROOT.RooDataSet("dataset","dataset",tree,variables,"",weight.GetName())
+  #dataset.Print()
+    
   # Select subset of dataset (e.g. apply trigger requirement)
-  #cuts = ROOT.TCut("L1_10p5_HLT_6p5>0.")
   if trigger != None and trigger != "": cuts = ROOT.TCut(trigger+">0.5")
   else: cuts = ROOT.TCut("1")
   dataset_selected = dataset.reduce(cuts.GetTitle())
   if verbose>0: dataset_selected.Print("V")
+  #dataset_selected.Print()
 
   ################################################################################
   # SIGNAL PARAMETERS (DEFAULTS AND PARSING JSON)
@@ -110,7 +118,7 @@ def fit_new(
 
   if ( read_signal_params==True or read_comb_params==True ) and trigger != None:
     trigger_str = "trigger_OR" if trigger == "" else trigger
-    filename = 'parameters.json'
+    filename = './output/params/parameters.json'
     try:
       with open(filename,'r') as f:
         try:
@@ -294,7 +302,7 @@ def fit_new(
 
     # Open file and parse json
     dct = {}
-    filename = 'parameters.json'
+    filename = './output/params/parameters.json'
     try:
       with open(filename,'r') as f:
         try:
@@ -594,7 +602,7 @@ def fit_new(
   legend.Draw()
 
   # Save canvas
-  canvas.SaveAs("plots/"+tag+"/fitted_"+tag+"_"+sample+"_"+var+str("_"+trigger if trigger is not None else "")+".pdf")
+  canvas.SaveAs("./output/plots/"+tag+"/fitted_"+tag+"_"+sample+"_"+var+str("_"+trigger if trigger is not None else "")+".pdf")
 
 ################################################################################
 # UTILITY 
@@ -627,31 +635,31 @@ if __name__ == "__main__":
     _var = "b_mass"
 
     # Production tag
-    _tag = ["2022Sep05","2022Oct12"][1]
+    _tag = ["2022Sep05","2022Oct12","2022Nov14"][-1]
 
     # Sample being considered
     samples = [
         "BuToKJpsi_Toee",
         "BuToKPsi2S_Toee",
-        "BuToKee",
-        "Run2022_Jpsi",
-        "Run2022_Psi2S",
-        "Run2022_LowQ2",
+#        "BuToKee",
+#        "Run2022_Jpsi",
+#        "Run2022_Psi2S",
+#        "Run2022_LowQ2",
         ]
 
     triggers = [
-        "",
-        "trigger_OR",
-        "L1_11p0_HLT_6p5",
-        "L1_10p5_HLT_6p5",
-        "L1_10p5_HLT_5p0",
-        "L1_8p5_HLT_5p0",
-        "L1_8p0_HLT_5p0",
-        "L1_7p0_HLT_5p0",
+#        "",
+#        "trigger_OR",
+#        "L1_11p0_HLT_6p5",
+#        "L1_10p5_HLT_6p5",
+#        "L1_10p5_HLT_5p0",
+#        "L1_8p5_HLT_5p0",
+#        "L1_8p0_HLT_5p0",
+#        "L1_7p0_HLT_5p0",
         "L1_6p5_HLT_4p5",
-        "L1_6p0_HLT_4p0",
-        "L1_5p5_HLT_6p0",
-        "L1_5p5_HLT_4p0",
+#        "L1_6p0_HLT_4p0",
+#        "L1_5p5_HLT_6p0",
+#        "L1_5p5_HLT_4p0",
         #"HLT_DoubleEle6p5",
         #"HLT_DoubleEle5p0",
         #"HLT_DoubleEle4p5",
@@ -684,16 +692,16 @@ if __name__ == "__main__":
                 trigger=_trigger,
                 var=_var,
                 verbose=5,
-                read_signal_params= True,
-                write_signal_params=True, # Just update signal_num
-                fix_signal_params=  True,
-                read_comb_params=   True,
-                write_comb_params=  True, # Just update comb_num
-                fix_comb_params=    True,
-                add_part_bkgd=      True,
-                read_part_params=   True,
-                write_part_params=  True, # Just update part_num
-                fix_part_params=    True,
+                read_signal_params= False,
+                write_signal_params=False, # Just update signal_num
+                fix_signal_params=  False,
+                read_comb_params=   False,
+                write_comb_params=  False, # Just update comb_num
+                fix_comb_params=    False,
+                add_part_bkgd=      False,
+                read_part_params=   False,
+                write_part_params=  False, # Just update part_num
+                fix_part_params=    False,
                 )
 
     print("Finished...")
