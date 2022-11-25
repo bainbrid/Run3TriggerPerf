@@ -2,6 +2,8 @@ import awkward as ak
 import numpy as np
 import time
 import uproot as uproot
+import json
+import bisect
 
 import numpy as np
 np.seterr(divide='ignore', invalid='ignore')
@@ -13,30 +15,52 @@ starttime = time.time()
 
 dct = {
     "2022Sep05":{
-        # Separate eras
-        "2022Sep05_Run2022C_Jpsi":["2022Sep05_Run2022C"],
-        "2022Sep09_Run2022Dv1_Jpsi":["2022Sep09_Run2022Dv1"],
-        "2022Sep05_Run2022Dv2_Jpsi":["2022Sep05_Run2022Dv2"],
-        # Total (B+C+D)
-        "2022Sep05_Run2022_LowQ2":["2022Sep05_Run2022C","2022Sep09_Run2022Dv1","2022Sep05_Run2022Dv2"],
-        "2022Sep05_Run2022_Jpsi":["2022Sep05_Run2022C","2022Sep09_Run2022Dv1","2022Sep05_Run2022Dv2"],
-        "2022Sep05_Run2022_Psi2S":["2022Sep05_Run2022C","2022Sep09_Run2022Dv1","2022Sep05_Run2022Dv2"],
-        # MC
-        "2022Sep05_BuToKJpsi_Toee":["2022Sep05_BuToKJpsi_Toee"],
-        "2022Sep05_BuToKPsi2S_Toee":["2022Sep05_BuToKPsi2S_Toee"],
-        "2022Sep05_BuToKee":["2022Sep05_BuToKee"],
+        "2022Sep05_BuToKJpsi_Toee": ["./input/ntuples/2022Sep05/ntuple_2022Sep05_BuToKJpsi_Toee.root"],
+        "2022Sep05_BuToKPsi2S_Toee":["./input/ntuples/2022Sep05/ntuple_2022Sep05_BuToKPsi2S_Toee.root"],
+        "2022Sep05_BuToKee":        ["./input/ntuples/2022Sep05/ntuple_2022Sep05_BuToKee.root"],
+        # Eras B+C+D
+        "2022Sep05_Run2022_LowQ2":[
+            "./input/ntuples/2022Sep05/ntuple_2022Sep05_Run2022C.root",
+            "./input/ntuples/2022Sep05/ntuple_2022Sep09_Run2022Dv1.root",
+            "./input/ntuples/2022Sep05/ntuple_2022Sep05_Run2022Dv2.root"],
+        "2022Sep05_Run2022_Jpsi":[
+            "./input/ntuples/2022Sep05/ntuple_2022Sep05_Run2022C.root",
+            "./input/ntuples/2022Sep05/ntuple_2022Sep09_Run2022Dv1.root",
+            "./input/ntuples/2022Sep05/ntuple_2022Sep05_Run2022Dv2.root"],
+        "2022Sep05_Run2022_Psi2S":[
+            "./input/ntuples/2022Sep05/ntuple_2022Sep05_Run2022C.root",
+            "./input/ntuples/2022Sep05/ntuple_2022Sep09_Run2022Dv1.root",
+            "./input/ntuples/2022Sep05/ntuple_2022Sep05_Run2022Dv2.root"],
+        # Separate eras for J/psi (only)
+        "2022Sep05_Run2022C_Jpsi":  ["./input/ntuples/2022Sep05/ntuple_2022Sep05_Run2022C.root"],
+        "2022Sep09_Run2022Dv1_Jpsi":["./input/ntuples/2022Sep05/ntuple_2022Sep09_Run2022Dv1.root"],
+        "2022Sep05_Run2022Dv2_Jpsi":["./input/ntuples/2022Sep05/ntuple_2022Sep05_Run2022Dv2.root"],
     },
     "2022Oct12":{
-        "2022Oct12_BuToKJpsi_Toee":["2022Oct12_BuToKJpsi_Toee"],
-        "2022Oct12_BuToKPsi2S_Toee":["2022Oct12_BuToKPsi2S_Toee"],
-        "2022Oct12_BuToKee":["2022Oct12_BuToKee"],
-        "2022Oct12_Run2022_Jpsi":["2022Oct12_Run2022C","2022Oct12_Run2022Dv1","2022Oct12_Run2022Dv2"],
-        "2022Oct12_Run2022_Psi2S":["2022Oct12_Run2022C","2022Oct12_Run2022Dv1","2022Oct12_Run2022Dv2"],
-        "2022Oct12_Run2022_LowQ2":["2022Oct12_Run2022C","2022Oct12_Run2022Dv1","2022Oct12_Run2022Dv2"],
-    }
+        "2022Oct12_BuToKJpsi_Toee": ["./input/ntuples/2022Oct12/ntuple_2022Oct12_BuToKJpsi_Toee.root"],
+        "2022Oct12_BuToKPsi2S_Toee":["./input/ntuples/2022Oct12/ntuple_2022Oct12_BuToKPsi2S_Toee.root"],
+        "2022Oct12_BuToKee":        ["./input/ntuples/2022Oct12/ntuple_2022Oct12_BuToKee.root"],
+        # Eras B+C+D
+        "2022Oct12_Run2022_Jpsi":[
+            "./input/ntuples/2022Oct12/ntuple_2022Oct12_Run2022C.root",
+            "./input/ntuples/2022Oct12/ntuple_2022Oct12_Run2022Dv1.root",
+            "./input/ntuples/2022Oct12/ntuple_2022Oct12_Run2022Dv2.root"],
+        "2022Oct12_Run2022_Psi2S":[
+            "./input/ntuples/2022Oct12/ntuple_2022Oct12_Run2022C.root",
+            "./input/ntuples/2022Oct12/ntuple_2022Oct12_Run2022Dv1.root",
+            "./input/ntuples/2022Oct12/ntuple_2022Oct12_Run2022Dv2.root"],
+        "2022Oct12_Run2022_LowQ2":[
+            "./input/ntuples/2022Oct12/ntuple_2022Oct12_Run2022C.root",
+            "./input/ntuples/2022Oct12/ntuple_2022Oct12_Run2022Dv1.root",
+            "./input/ntuples/2022Oct12/ntuple_2022Oct12_Run2022Dv2.root"],
+    },
+    "2022Nov14":{
+        "2022Nov14_BuToKJpsi_Toee":["./input/ntuples/2022Nov14/ntuple_2022Oct12_BuToKJpsi_Toee.root"],
+        "2022Nov14_BuToKPsi2S_Toee":["./input/ntuples/2022Nov14/ntuple_2022Oct12_BuToKPsi2S_Toee.root"],
+    },
 }
 
-tag=["2022Sep05","2022Oct12"][1]
+tag=["2022Sep05","2022Oct12","2022Nov14"][-1]
 entries=50000
 bmass_values=[]
 bmass_nvalues=0
@@ -75,9 +99,37 @@ branches_used.extend([
     ])
 print("branches_used:",branches_used)
 
+# Print content of trigger efficiency scale factors
+jsonFile = open('input/corrections/dietrig_scalefactors.json','r')
+jsonDict = json.load(jsonFile)
+print(" "*16," ".join([ f"{pt:4.1f}      " for pt in list(jsonDict.values())[0]["pT"] ]))
+for (trigger,payload) in jsonDict.items():
+    print(f"{trigger:16s}"," ".join([ f"{eff:4.2f}+-{err:4.2f}" for (eff,err) in payload["effs"] ]))
+jsonFile.close()
+del(jsonFile)
+
+def scale_factor(dct,trg,pt):
+    if pt < 0.: return 1. # No correction for -ve pT
+    values = dct.get(trg,None)
+    if values == None: return -1. # Flag if trigger not found in dict
+    pts = values["pT"]
+    effs = values["effs"]
+    idx = bisect.bisect_left(pts,pt) - 1
+    if idx < 0: return 1. # No correction if pT not found
+    if idx >= len(pts) or idx >= len(effs): return 1. # No correction if pT not found
+    pt_tmp = pts[idx]
+    eff = effs[idx]
+    #print("trg",trg,"pt",pt,"idx",idx,"pt_tmp",pt_tmp,"eff",eff)
+    if np.isnan(eff[0]): return 1. # No correction if eff is nan
+    return eff[0]
+
+# Iterate through data sets and corresponding samples
 for dataset,samples in dct[tag].items() :
 
+    # Data or MC?
     isData = "Run2022" in dataset
+
+    # q2 region?
     region = "LowQ2" if ( (    "BuToKee" in dataset ) or ( "LowQ2" in dataset ) ) \
       else    "Jpsi" if ( (  "BuToKJpsi" in dataset ) or (  "Jpsi" in dataset ) ) \
       else   "Psi2S" if ( ( "BuToKPsi2S" in dataset ) or ( "Psi2S" in dataset ) ) \
@@ -85,9 +137,10 @@ for dataset,samples in dct[tag].items() :
     print("Region:",region)
     if region=="Unknown": print("Exitting..."); exit()
 
-    name_output = "./slimmed/"+tag+"/slimmed_"+dataset+".root"
+    name_output = "./output/slimmed/"+tag+"/slimmed_"+dataset+".root"
     file_output = uproot.recreate(name_output)
     file_output.mktree("tree",{
+        "weight": ("float",(1,)),
         "b_mass": ("float",(1,)),
         "b_mass_reduced": ("float",(1,)),
         "mll": ("float",(1,)),
@@ -102,6 +155,10 @@ for dataset,samples in dct[tag].items() :
         "L1_6p0_HLT_4p0": ("int",(1,)),
         "L1_5p5_HLT_6p0": ("int",(1,)),
         "L1_5p5_HLT_4p0": ("int",(1,)),
+        #"HLT_DoubleEle6p5":("int",(1,)),
+        #"HLT_DoubleEle5p0":("int",(1,)),
+        #"HLT_DoubleEle4p5":("int",(1,)),
+        #"HLT_DoubleEle4p0":("int",(1,)),
         })
 
     print("Dataset:",dataset)
@@ -109,7 +166,8 @@ for dataset,samples in dct[tag].items() :
     
     for sample in samples :
 
-        name_input = "./ntuples/"+tag+"/ntuple_"+sample+".root:tree"
+        #name_input = "./input/ntuples/"+tag+"/ntuple_"+sample+".root:tree"
+        name_input = sample+":tree"
         with uproot.open(name_input,
                          file_handler=uproot.MultithreadedFileSource,
                          num_workers=100) as file_input:
@@ -137,6 +195,15 @@ for dataset,samples in dct[tag].items() :
                 # Reduced B mass
                 batch['b_mass_reduced'] = batch['b_mass'] - batch['mll'] + 3.0969
 
+                # Weight MC events (e.g. by trigger scale factors)
+                batch['weight'] = 1.
+                print("isData",isData)
+                if isData == False:
+                    #weights = [ scale_factor(jsonDict,"L1_10p5_HLT_6p5",pt) for pt in batch['e2_reco_pt'] ]
+                    weights = [ scale_factor(jsonDict,"L1_6p5_HLT_4p5",pt) for pt in batch['e2_reco_pt'] ]
+                    batch['weight'] = weights
+                    #print("weights",weights[:20])
+                    
                 mll_cut = (batch['mll']>1.05) & (batch['mll']<2.45) if region == "LowQ2" \
                   else (batch['mll']>2.9) & (batch['mll']<3.2) if region == "Jpsi" \
                   else (batch['mll']>3.55) & (batch['mll']<3.8) if region == "Psi2S" \
@@ -199,7 +266,6 @@ for dataset,samples in dct[tag].items() :
                     )
 
                 # USED FOR LOWQ2 IN PRESENTATION TO BPH
-                # USED FOR PSI2S (W/OUT BDT!) IN PRESENTATION TO BPH
                 cuts_tight = (
                     (batch['inAcc']==1) & (batch['isMatched']==1) # GEN
                     & (batch['HLT_DoubleEle6p5']==1) # Trigger
@@ -217,11 +283,35 @@ for dataset,samples in dct[tag].items() :
                     & (batch['b_mass']>4.7) & (batch['b_mass']<5.7) # B mass window
                     )
 
+                # USED FOR PSI2S IN PRESENTATION TO BPH (SAME AS TIGHT BUT NO BDT!) 
+                cuts_loose = (
+                    (batch['inAcc']==1) & (batch['isMatched']==1) # GEN
+                    #& (batch['HLT_DoubleEle6p5']==1) # Trigger
+                    & (batch['e1_reco_loose']==1) & (batch['e2_reco_loose']==1) # ele ID
+                    & (batch['e1_reco_pt']<100.) & (batch['e2_reco_pt']<100.) # ele "ID"
+                    & (np.abs(batch['e1_reco_eta'])<1.2) & (np.abs(batch['e2_reco_eta'])<1.2) # ele eta
+                    & (batch['e1_reco_pt']>10.) & (batch['e2_reco_pt']>10.) # ele pT
+                    & mll_cut # mll region
+                    & (batch['b_k_pt']>0.5) # kaon pT ???
+                    & (batch['b_cos2D']>0.99) # cut-based ???
+                    & (batch['b_svprob']>0.01) # cut-based
+                    & (batch['b_pt']>15.) # cut-based
+                    & (batch['b_lxysig']>1.) # cut-based ???
+                    #& (batch['bdt']>8.) # BDT-based (was removed for Psi2S...!!!)
+                    & (batch['b_mass']>4.7) & (batch['b_mass']<5.7) # B mass window
+                    )
+
                 ##########
                 # CHOOSE CUTS
                 ##########
                 
-                cuts = cuts_tight
+                cuts = None
+                if   region=="LowQ2": cuts = cuts_tight
+                elif region=="Jpsi":  cuts = cuts_rob
+                elif region=="Psi2S": cuts = cuts_loose
+                else:
+                    print("Region unknown!",region)
+                    quit()
 
                 ##########
                 # TRIGGERS
@@ -237,6 +327,10 @@ for dataset,samples in dct[tag].items() :
                 cuts_L1_6p0_HLT_4p0  = (batch['L1_DoubleEG6p0',cuts]==1)  & (batch['HLT_DoubleEle4p0',cuts]==1)
                 cuts_L1_5p5_HLT_6p0  = (batch['L1_DoubleEG5p5',cuts]==1)  & (batch['HLT_DoubleEle6p0',cuts]==1)
                 cuts_L1_5p5_HLT_4p0  = (batch['L1_DoubleEG5p5',cuts]==1)  & (batch['HLT_DoubleEle4p0',cuts]==1)
+                #cuts_HLT_6p5 = (batch['HLT_DoubleEle6p5',cuts]==1)
+                #cuts_HLT_5p0 = (batch['HLT_DoubleEle5p0',cuts]==1)
+                #cuts_HLT_4p5 = (batch['HLT_DoubleEle4p5',cuts]==1)
+                #cuts_HLT_4p0 = (batch['HLT_DoubleEle4p0',cuts]==1)
 
                 if isData:
                     cuts_L1_11p0_HLT_6p5 = cuts_L1_11p0_HLT_6p5 & (batch['JSON_L1_11p0_HLT_6p5_final',cuts]==1)
@@ -249,6 +343,10 @@ for dataset,samples in dct[tag].items() :
                     cuts_L1_6p0_HLT_4p0  = cuts_L1_6p0_HLT_4p0  & (batch['JSON_L1_6p0_HLT_4p0_final',cuts]==1)
                     cuts_L1_5p5_HLT_6p0  = cuts_L1_5p5_HLT_6p0  & (batch['JSON_L1_5p5_HLT_6p0_final',cuts]==1)
                     cuts_L1_5p5_HLT_4p0  = cuts_L1_5p5_HLT_4p0  & (batch['JSON_L1_5p5_HLT_4p0_final',cuts]==1)
+                    #cuts_HLT_6p5 = cuts_HLT_6p5 & (batch['JSON_L1_10p5_HLT_6p5_final',cuts]==1)
+                    #cuts_HLT_5p0 = cuts_HLT_5p0 & (batch['JSON_L1_8p0_HLT_5p0_final',cuts]==1)
+                    #cuts_HLT_4p5 = cuts_HLT_4p5 & (batch['JSON_L1_6p5_HLT_4p5_final',cuts]==1)
+                    #cuts_HLT_4p0 = cuts_HLT_4p0 & (batch['JSON_L1_6p0_HLT_4p0_final',cuts]==1)
 
                 cuts_trigger_OR = (
                     cuts_L1_11p0_HLT_6p5 | cuts_L1_10p5_HLT_6p5 | cuts_L1_10p5_HLT_5p0 | cuts_L1_8p5_HLT_5p0 |
@@ -269,6 +367,7 @@ for dataset,samples in dct[tag].items() :
                 values1 = [[i] for i in batch["b_mass",cuts].tolist()]
                 values2 = [[i] for i in batch["b_mass_reduced",cuts].tolist()]
                 values3 = [[i] for i in batch["mll",cuts].tolist()]
+                values4 = [[i] for i in batch["weight",cuts].tolist()]
 
                 if False:
                     length=10
@@ -284,6 +383,7 @@ for dataset,samples in dct[tag].items() :
                         "b_mass_reduced": values2[start: start + entries],
                         "mll": values3[start: start + entries],
                         "trigger_OR": [[i] for i in cuts_trigger_OR.tolist()][start: start + entries],
+                        "weight": values4[start: start + entries],
                         "L1_11p0_HLT_6p5": [[i] for i in cuts_L1_11p0_HLT_6p5.tolist()][start: start + entries],
                         "L1_10p5_HLT_6p5": [[i] for i in cuts_L1_11p0_HLT_6p5.tolist()][start: start + entries],
                         "L1_10p5_HLT_5p0": [[i] for i in cuts_L1_10p5_HLT_6p5.tolist()][start: start + entries],
@@ -294,6 +394,10 @@ for dataset,samples in dct[tag].items() :
                         "L1_6p0_HLT_4p0":  [[i] for i in cuts_L1_6p5_HLT_4p5 .tolist()][start: start + entries],
                         "L1_5p5_HLT_6p0":  [[i] for i in cuts_L1_6p0_HLT_4p0 .tolist()][start: start + entries],
                         "L1_5p5_HLT_4p0":  [[i] for i in cuts_L1_5p5_HLT_6p0 .tolist()][start: start + entries],
+                        #"HLT_DoubleEle6p5":[[i] for i in cuts_HLT_6p5.tolist()][start: start + entries],
+                        #"HLT_DoubleEle5p0":[[i] for i in cuts_HLT_5p0.tolist()][start: start + entries],
+                        #"HLT_DoubleEle4p5":[[i] for i in cuts_HLT_4p5.tolist()][start: start + entries],
+                        #"HLT_DoubleEle4p0":[[i] for i in cuts_HLT_4p0.tolist()][start: start + entries],
                     })
 
                 ##########
