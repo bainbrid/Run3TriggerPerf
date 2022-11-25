@@ -127,7 +127,7 @@ void fit_new() {
   
   RooRealVar mass(var, "Mass [GeV]", 4.7, 5.7);
 
-  TFile *ntuple_mc = new TFile("./slimmed/"+tag+"/slimmed_"+tag+"_"+sample+".root"); 
+  TFile *ntuple_mc = new TFile("./output/slimmed/"+tag+"/slimmed_"+tag+"_"+sample+".root"); 
 
   TTree* tree_mc   = (TTree*) ntuple_mc->Get("tree");
 
@@ -350,6 +350,6 @@ void fit_new() {
 
 
   massLeg_Jpsi->Draw();
-  c_mass_1->SaveAs("plots/"+tag+"/fitted_"+tag+"_"+sample+"_"+var+".pdf");
+  c_mass_1->SaveAs("./output/plots/"+tag+"/fitted_"+tag+"_"+sample+"_"+var+".pdf");
 
 }
