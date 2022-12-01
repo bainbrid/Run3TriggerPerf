@@ -168,6 +168,7 @@ def summary(filename,triggers=None) :
     ratios_psi2s = print_comparison_table(dct,triggers,region="Psi2S")
     print_comparison_table(dct,triggers,region="LowQ2")
 
+    print()
     print("Double ratio: [obs/exp]_Psi2S / [obs/exp]_Jpsi")
     for trg,jpsi,psi2s in zip(triggers,ratios_jpsi,ratios_psi2s):
         ratio = psi2s[0]/jpsi[0] if jpsi[0]>0. else 0.
@@ -182,9 +183,12 @@ def summary(filename,triggers=None) :
 
 if __name__ == "__main__":
 
-    filename = 'output/params/2022Oct12/parameters.json'
+    # Production tag
+    tag = ["2022Sep05","2022Oct12","2022Nov14","2022Test"][-1]
+    
+    filename = 'output/'+tag+'/params/parameters.json'
     triggers = [
-#        ("trigger_none",7.36),
+        ("trigger_none",7.36),
         ("trigger_OR",7.10),
         ("L1_11p0_HLT_6p5",7.09),
         ("L1_10p5_HLT_6p5",7.04),

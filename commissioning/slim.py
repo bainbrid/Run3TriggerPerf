@@ -15,52 +15,55 @@ starttime = time.time()
 
 dct = {
     "2022Sep05":{
-        "2022Sep05_BuToKJpsi_Toee": ["./input/ntuples/2022Sep05/ntuple_2022Sep05_BuToKJpsi_Toee.root"],
-        "2022Sep05_BuToKPsi2S_Toee":["./input/ntuples/2022Sep05/ntuple_2022Sep05_BuToKPsi2S_Toee.root"],
-        "2022Sep05_BuToKee":        ["./input/ntuples/2022Sep05/ntuple_2022Sep05_BuToKee.root"],
+        "BuToKJpsi_Toee": ["./input/ntuples/2022Sep05/ntuple_2022Sep05_BuToKJpsi_Toee.root"],
+        "BuToKPsi2S_Toee":["./input/ntuples/2022Sep05/ntuple_2022Sep05_BuToKPsi2S_Toee.root"],
+        "BuToKee":        ["./input/ntuples/2022Sep05/ntuple_2022Sep05_BuToKee.root"],
         # Eras B+C+D
-        "2022Sep05_Run2022_LowQ2":[
+        "Run2022_LowQ2":[
             "./input/ntuples/2022Sep05/ntuple_2022Sep05_Run2022C.root",
             "./input/ntuples/2022Sep05/ntuple_2022Sep09_Run2022Dv1.root",
             "./input/ntuples/2022Sep05/ntuple_2022Sep05_Run2022Dv2.root"],
-        "2022Sep05_Run2022_Jpsi":[
+        "Run2022_Jpsi":[
             "./input/ntuples/2022Sep05/ntuple_2022Sep05_Run2022C.root",
             "./input/ntuples/2022Sep05/ntuple_2022Sep09_Run2022Dv1.root",
             "./input/ntuples/2022Sep05/ntuple_2022Sep05_Run2022Dv2.root"],
-        "2022Sep05_Run2022_Psi2S":[
+        "Run2022_Psi2S":[
             "./input/ntuples/2022Sep05/ntuple_2022Sep05_Run2022C.root",
             "./input/ntuples/2022Sep05/ntuple_2022Sep09_Run2022Dv1.root",
             "./input/ntuples/2022Sep05/ntuple_2022Sep05_Run2022Dv2.root"],
         # Separate eras for J/psi (only)
-        "2022Sep05_Run2022C_Jpsi":  ["./input/ntuples/2022Sep05/ntuple_2022Sep05_Run2022C.root"],
-        "2022Sep09_Run2022Dv1_Jpsi":["./input/ntuples/2022Sep05/ntuple_2022Sep09_Run2022Dv1.root"],
-        "2022Sep05_Run2022Dv2_Jpsi":["./input/ntuples/2022Sep05/ntuple_2022Sep05_Run2022Dv2.root"],
+        "Run2022C_Jpsi":  ["./input/ntuples/2022Sep05/ntuple_2022Sep05_Run2022C.root"],
+        "Run2022Dv1_Jpsi":["./input/ntuples/2022Sep05/ntuple_2022Sep09_Run2022Dv1.root"],
+        "Run2022Dv2_Jpsi":["./input/ntuples/2022Sep05/ntuple_2022Sep05_Run2022Dv2.root"],
     },
     "2022Oct12":{
-        "2022Oct12_BuToKJpsi_Toee": ["./input/ntuples/2022Oct12/ntuple_2022Oct12_BuToKJpsi_Toee.root"],
-        "2022Oct12_BuToKPsi2S_Toee":["./input/ntuples/2022Oct12/ntuple_2022Oct12_BuToKPsi2S_Toee.root"],
-        "2022Oct12_BuToKee":        ["./input/ntuples/2022Oct12/ntuple_2022Oct12_BuToKee.root"],
+        "BuToKJpsi_Toee": ["./input/ntuples/2022Oct12/ntuple_2022Oct12_BuToKJpsi_Toee.root"],
+        "BuToKPsi2S_Toee":["./input/ntuples/2022Oct12/ntuple_2022Oct12_BuToKPsi2S_Toee.root"],
+        "BuToKee":        ["./input/ntuples/2022Oct12/ntuple_2022Oct12_BuToKee.root"],
         # Eras B+C+D
-        "2022Oct12_Run2022_Jpsi":[
+        "Run2022_Jpsi":[
             "./input/ntuples/2022Oct12/ntuple_2022Oct12_Run2022C.root",
             "./input/ntuples/2022Oct12/ntuple_2022Oct12_Run2022Dv1.root",
             "./input/ntuples/2022Oct12/ntuple_2022Oct12_Run2022Dv2.root"],
-        "2022Oct12_Run2022_Psi2S":[
+        "Run2022_Psi2S":[
             "./input/ntuples/2022Oct12/ntuple_2022Oct12_Run2022C.root",
             "./input/ntuples/2022Oct12/ntuple_2022Oct12_Run2022Dv1.root",
             "./input/ntuples/2022Oct12/ntuple_2022Oct12_Run2022Dv2.root"],
-        "2022Oct12_Run2022_LowQ2":[
+        "Run2022_LowQ2":[
             "./input/ntuples/2022Oct12/ntuple_2022Oct12_Run2022C.root",
             "./input/ntuples/2022Oct12/ntuple_2022Oct12_Run2022Dv1.root",
             "./input/ntuples/2022Oct12/ntuple_2022Oct12_Run2022Dv2.root"],
     },
     "2022Nov14":{
-        "2022Nov14_BuToKJpsi_Toee":["./input/ntuples/2022Nov14/ntuple_2022Oct12_BuToKJpsi_Toee.root"],
-        "2022Nov14_BuToKPsi2S_Toee":["./input/ntuples/2022Nov14/ntuple_2022Oct12_BuToKPsi2S_Toee.root"],
+        "BuToKJpsi_Toee":["./input/ntuples/2022Nov14/ntuple_2022Oct12_BuToKJpsi_Toee.root"],
+        "BuToKPsi2S_Toee":["./input/ntuples/2022Nov14/ntuple_2022Oct12_BuToKPsi2S_Toee.root"],
     },
 }
 
-tag=["2022Sep05","2022Oct12","2022Nov14"][-1]
+# TEST !! 
+dct["2022Test"] = dct.get("2022Oct12",None)
+    
+tag=["2022Sep05","2022Oct12","2022Nov14","2022Test"][-1]
 entries=50000
 bmass_values=[]
 bmass_nvalues=0
@@ -137,7 +140,7 @@ for dataset,samples in dct[tag].items() :
     print("Region:",region)
     if region=="Unknown": print("Exitting..."); exit()
 
-    name_output = "./output/slimmed/"+tag+"/slimmed_"+dataset+".root"
+    name_output = "./output/"+tag+"/slimmed/slimmed_"+dataset+".root"
     file_output = uproot.recreate(name_output)
     file_output.mktree("tree",{
         "weight": ("float",(1,)),
@@ -197,7 +200,7 @@ for dataset,samples in dct[tag].items() :
 
                 # Weight MC events (e.g. by trigger scale factors)
                 batch['weight'] = 1.
-                print("isData",isData)
+                #print("isData",isData)
                 if isData == False:
                     #weights = [ scale_factor(jsonDict,"L1_10p5_HLT_6p5",pt) for pt in batch['e2_reco_pt'] ]
                     weights = [ scale_factor(jsonDict,"L1_6p5_HLT_4p5",pt) for pt in batch['e2_reco_pt'] ]

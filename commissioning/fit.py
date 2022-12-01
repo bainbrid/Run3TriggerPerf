@@ -40,7 +40,7 @@ def fit_new(
   ROOT.gStyle.SetOptStat(0)
   ROOT.gStyle.SetOptFit(0)
 
-  input_path = "./output/slimmed/"+tag+"/slimmed_"+tag+"_"+sample+".root"
+  input_path = "./output/"+tag+"/slimmed/slimmed_"+sample+".root"
   input_file = ROOT.TFile(input_path,"READ")
   tree = input_file.Get("tree")
   print("input_file:",input_path)
@@ -118,7 +118,7 @@ def fit_new(
 
   if ( read_signal_params==True or read_comb_params==True ) and trigger != None:
     trigger_str = "trigger_OR" if trigger == "" else trigger
-    filename = './output/params/parameters.json'
+    filename = './output/'+tag+'/params/parameters.json'
     try:
       with open(filename,'r') as f:
         try:
@@ -302,7 +302,7 @@ def fit_new(
 
     # Open file and parse json
     dct = {}
-    filename = './output/params/parameters.json'
+    filename = './output/'+tag+'/params/parameters.json'
     try:
       with open(filename,'r') as f:
         try:
@@ -602,7 +602,7 @@ def fit_new(
   legend.Draw()
 
   # Save canvas
-  canvas.SaveAs("./output/plots/"+tag+"/fitted_"+tag+"_"+sample+"_"+var+str("_"+trigger if trigger is not None else "")+".pdf")
+  canvas.SaveAs("./output/"+tag+"/plots/fitted_"+sample+"_"+var+str("_"+trigger if trigger is not None else "")+".pdf")
 
 ################################################################################
 # UTILITY 
@@ -635,31 +635,31 @@ if __name__ == "__main__":
     _var = "b_mass"
 
     # Production tag
-    _tag = ["2022Sep05","2022Oct12","2022Nov14"][-1]
+    _tag = ["2022Sep05","2022Oct12","2022Nov14","2022Test"][-1]
 
     # Sample being considered
     samples = [
         "BuToKJpsi_Toee",
         "BuToKPsi2S_Toee",
-#        "BuToKee",
-#        "Run2022_Jpsi",
-#        "Run2022_Psi2S",
-#        "Run2022_LowQ2",
+        "BuToKee",
+        "Run2022_Jpsi",
+        "Run2022_Psi2S",
+        "Run2022_LowQ2",
         ]
 
     triggers = [
-#        "",
-#        "trigger_OR",
-#        "L1_11p0_HLT_6p5",
-#        "L1_10p5_HLT_6p5",
-#        "L1_10p5_HLT_5p0",
-#        "L1_8p5_HLT_5p0",
-#        "L1_8p0_HLT_5p0",
-#        "L1_7p0_HLT_5p0",
+        "",
+        "trigger_OR",
+        "L1_11p0_HLT_6p5",
+        "L1_10p5_HLT_6p5",
+        "L1_10p5_HLT_5p0",
+        "L1_8p5_HLT_5p0",
+        "L1_8p0_HLT_5p0",
+        "L1_7p0_HLT_5p0",
         "L1_6p5_HLT_4p5",
-#        "L1_6p0_HLT_4p0",
-#        "L1_5p5_HLT_6p0",
-#        "L1_5p5_HLT_4p0",
+        "L1_6p0_HLT_4p0",
+        "L1_5p5_HLT_6p0",
+        "L1_5p5_HLT_4p0",
         #"HLT_DoubleEle6p5",
         #"HLT_DoubleEle5p0",
         #"HLT_DoubleEle4p5",
@@ -692,16 +692,16 @@ if __name__ == "__main__":
                 trigger=_trigger,
                 var=_var,
                 verbose=5,
-                read_signal_params= False,
+                read_signal_params= True,
                 write_signal_params=False, # Just update signal_num
-                fix_signal_params=  False,
-                read_comb_params=   False,
+                fix_signal_params=  True,
+                read_comb_params=   True,
                 write_comb_params=  False, # Just update comb_num
-                fix_comb_params=    False,
+                fix_comb_params=    True,
                 add_part_bkgd=      False,
-                read_part_params=   False,
+                read_part_params=   True,
                 write_part_params=  False, # Just update part_num
-                fix_part_params=    False,
+                fix_part_params=    True,
                 )
 
     print("Finished...")
