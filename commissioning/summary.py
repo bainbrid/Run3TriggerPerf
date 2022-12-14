@@ -231,17 +231,17 @@ def summary(filename,triggers=None) :
             f'  Obs @ LowQ2: {d_psi2s[0]:5.1f}',
             )
 
-    # Predict LowQ2
+    # Predict LowQ2 (blinded)
     print()
     print("Predict @ low q2")
-    for (trg,lumi),r_jpsi,m_lowq2,d_lowq2 in zip(triggers,ratios_jpsi,mc_lowq2,data_lowq2):
+    for (trg,lumi),r_jpsi,m_lowq2,_ in zip(triggers,ratios_jpsi,mc_lowq2,data_lowq2):
         m_lowq2 = expectation(m_lowq2[0],lumi,m_lowq2[1],"LowQ2")
         print(
             f'Trigger: {trg:16s}',
             f'  Obs/Exp @ Jpsi: {r_jpsi[0]:4.2f}',
             f'  Exp @ LowQ2: {m_lowq2[0]:5.1f}',
             f'  Pred @ LowQ2: {m_lowq2[0]*r_jpsi[0]:5.1f}',
-            f'  Obs @ LowQ2: {d_lowq2[0]:5.1f}',
+            #f'  Obs @ LowQ2: {d_lowq2[0]:5.1f}', #@@
             )
     
 ################################################################################
