@@ -12,10 +12,11 @@
 #include <typeinfo>
 #include <vector>
 
-void peak(){
+void plot_jay(){
 
-    TFile* f = TFile::Open("./data/data_2022Aug24.root");
-    TTree* events = (TTree*)f->Get("tree");
+    TFile* f = TFile::Open("./input/ntuples/jay/singlemudenominator20220901.root");
+
+    TTree* events = (TTree*)f->Get("nano/tree");
     TString dir = "./plots/";
     
     TCanvas* c1 = new TCanvas("c1"); 
@@ -24,9 +25,9 @@ void peak(){
     TString var;
 
     // Initial cuts ...
-    TCut cuts = "e1_reco_pt<50. && e2_reco_pt<50.";
-    TCut e1_reco_eta = "TMath::Abs(e1_reco_eta)<1.2";
-    TCut e2_reco_eta = "TMath::Abs(e2_reco_eta)<1.2";
+    TCut cuts = "JpsiKE_e1_pt<100. && JpsiKE_e2_pt<100.";
+    TCut e1_reco_eta = "TMath::Abs(JpsiKE_e1_eta)<1.2";
+    TCut e2_reco_eta = "TMath::Abs(JpsiKE_e2_eta)<1.2";
     cuts += e1_reco_eta;
     cuts += e2_reco_eta;
 
@@ -34,55 +35,61 @@ void peak(){
 
     // Leading ele 
     name = "e1_reco_pt";
+    var = "JpsiKE_e1_pt";
     histo = new TH1F(name,name,100,0.,50.);
-    events->Draw(name+">>"+name,cuts);
+    events->Draw(var+">>"+name,cuts);
     c1->SaveAs(dir+name+".pdf");   
-    TCut e1_reco_pt = "e1_reco_pt>4.";
-    cuts += e1_reco_pt;
+    TCut e1_reco_pt = "JpsiKE_e1_pt>4.";
+    //cuts += e1_reco_pt;
     
     // Sub-leading ele 
     name = "e2_reco_pt";
+    var = "JpsiKE_e2_pt";
     histo = new TH1F(name,name,100,0.,50.);
-    events->Draw(name+">>"+name,cuts);
+    events->Draw(var+">>"+name,cuts);
     c1->SaveAs(dir+name+".pdf");
-    TCut e2_reco_pt = "e2_reco_pt>4.";
-    cuts += e2_reco_pt;
+    TCut e2_reco_pt = "JpsiKE_e2_pt>4.";
+    //cuts += e2_reco_pt;
 
     // J/psi candidate
     name = "mll";
+    var = "JpsiKE_Jpsi_mass_nofit";
     histo = new TH1F(name,name,100,0.,6.);
-    events->Draw(name+">>"+name,cuts);
+    events->Draw(var+">>"+name,cuts);
     c1->SaveAs(dir+name+".pdf");
-    TCut mll = "mll>2.9 && mll<3.2";
-    //TCut mll = "mll>1.05 && mll<2.45";
+    TCut mll = "JpsiKE_Jpsi_mass_nofit>2.9 && JpsiKE_Jpsi_mass_nofit<3.2";
+    //TCut mll = "JpsiKE_Jpsi_mass_nofit>1.05 && JpsiKE_Jpsi_mass_nofit<2.45";
     cuts += mll;
 
     // Kaon
     name = "b_k_pt";
+    var = "JpsiKE_pi_pt";
     histo = new TH1F(name,name,100,0.,20.);
-    events->Draw(name+">>"+name,cuts);
-    c1->SetLogy(1);
+    events->Draw(var+">>"+name,cuts);
+    c1->SetLogy(0);
     c1->SaveAs(dir+name+".pdf");
-    //TCut b_k_pt = "b_k_pt>8.";
+    TCut b_k_pt = "JpsiKE_pi_pt>2.";
     //cuts += b_k_pt;
 
     // cos2d
     name = "cos2d";
+    var = "JpsiKE_B_alpha";
     histo = new TH1F(name,name,100,-1.,1.);
-    events->Draw(name+">>"+name,cuts);
+    events->Draw(var+">>"+name,cuts);
     c1->SetLogy(1);
     c1->SaveAs(dir+name+".pdf");
 
     // ip3d
     name = "ip3d";
+    var = "JpsiKE_B_lips";
     histo = new TH1F(name,name,100,-10.,10.);
-    events->Draw(name+">>"+name,cuts);
+    events->Draw(var+">>"+name,cuts);
     c1->SetLogy(1);
     c1->SaveAs(dir+name+".pdf");
 
     // Lxysig
     name = "b_lxysig";
-    var = "b_lxy/b_lxyerr";
+    var = "JpsiKE_B_fls3d";
     histo = new TH1F(name,name,100,0.,10.);
     events->Draw(var+">>"+name,cuts);
     c1->SetLogy(1);
@@ -90,39 +97,43 @@ void peak(){
 
     // SV prob
     name = "b_svprob";
-    histo = new TH1F(name,name,1000,0.,1.);
-    events->Draw(name+">>"+name,cuts);
-    c1->SetLogy(0);
+    var = "JpsiKE_B_vprob";
+    histo = new TH1F(name,name,100,0.,1.);
+    events->Draw(var+">>"+name,cuts);
+    c1->SetLogy(1);
     c1->SaveAs(dir+name+".pdf");
 
     // B pT
     name = "b_pt";
+    var = "JpsiKE_B_pt";
     histo = new TH1F(name,name,100,0.,50.);
-    events->Draw(name+">>"+name,cuts);
+    events->Draw(var+">>"+name,cuts);
     c1->SetLogy(0);
-    c1->SaveAs(dir+name+".pdf");
-
-    // BDT
-    name = "bdt";
-    histo = new TH1F(name,name,100,-20.,20.);
-    events->Draw(name+">>"+name,cuts);
-    c1->SetLogy(1);
     c1->SaveAs(dir+name+".pdf");
 
     // B mass
     name = "b_mass";
-    histo = new TH1F(name,name,15,4.5,6.0);
-    events->Draw(name+">>"+name,cuts);
+    var = "JpsiKE_B_mass_nofit";
+    histo = new TH1F(name,name,30,4.5,6.0);
+    events->Draw(var+">>"+name,cuts);
+    c1->SetLogy(0);
+    c1->SaveAs(dir+name+".pdf");
+
+    // B mass (corrected)
+    name = "b_mass_corr";
+    var = "JpsiKE_B_mass_corr";
+    histo = new TH1F(name,name,30,4.5,6.0);
+    events->Draw(var+">>"+name,cuts);
     c1->SetLogy(0);
     c1->SaveAs(dir+name+".pdf");
 
     //TCut bdt = "bdt>7.";
-    TCut bdt = "b_svprob>0.1 && b_lxy/b_lxyerr>3. && cos2d>0.99 && b_k_pt>4. && bdt>5.";
+    TCut bdt = "JpsiKE_pi_pt>2. && JpsiKE_B_alpha>0.8 && JpsiKE_B_vprob>0.01 && JpsiKE_B_fls3d>0.";
     cuts += bdt;
 
-    // Kaon (post BDT)
-    name = "b_k_pt_post_bdt";
-    var = "b_k_pt";
+    // Kaon (post cuts)
+    name = "b_k_pt_post_cuts";
+    var = "JpsiKE_pi_pt";
     histo = new TH1F(name,name,100,0.,20.);
     events->Draw(var+">>"+name,cuts);
     c1->SetLogy(1);
@@ -133,10 +144,18 @@ void peak(){
 
     std::cout << "TCut: " << cuts.GetTitle() << std::endl;
 
-    // B mass (post BDT)
-    name = "b_mass_post_bdt";
-    var = "b_mass";
-    histo = new TH1F(name,name,15,4.5,6.0);
+    // B mass (post cuts)
+    name = "b_mass_post_cuts";
+    var = "JpsiKE_B_mass_nofit";
+    histo = new TH1F(name,name,30,4.5,6.0);
+    events->Draw(var+">>"+name,cuts);
+    c1->SetLogy(0);
+    c1->SaveAs(dir+name+".pdf");
+
+    // B mass (corrected, post cuts)
+    name = "b_mass_corr_post_cuts";
+    var = "JpsiKE_B_mass_corr";
+    histo = new TH1F(name,name,30,4.5,6.0);
     events->Draw(var+">>"+name,cuts);
     c1->SetLogy(0);
     c1->SaveAs(dir+name+".pdf");
