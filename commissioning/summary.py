@@ -25,13 +25,14 @@ def print_signal_header():
         "            cb_nR"
         )
 
-def print_signal_row(dct,trigger,lumi,isMC='mc',region='Jpsi'):
+def print_signal_row(dct,trigger,lumi,isMC='mc',region='Jpsi',blind=False):
     sub_dct = dct[isMC][region][trigger]
     print(f'{trigger:16s}, ',end='')
     val,err = val_err(sub_dct,"signal_num")
     count = (val,err)
     #if isMC=='mc': count = expectation(val,lumi,err,region)
-    print(f'{val:7.1f}+/-{err:5.1f} , ',end='')
+    if blind==False: print(f'{val:7.1f}+/-{err:5.1f} , ',end='')
+    else: print('        blinded , ',end='')
     val,err = val_err(sub_dct,"cb_mean")
     print(f'{val:5.3f}+/-{err:5.3f} , ',end='')
     val,err = val_err(sub_dct,"cb_sigma")
@@ -47,12 +48,12 @@ def print_signal_row(dct,trigger,lumi,isMC='mc',region='Jpsi'):
     print()
     return count
 
-def print_signal_table(dct,triggers,isMC="mc",region="Jpsi"):
+def print_signal_table(dct,triggers,isMC="mc",region="Jpsi",blind=False):
     print("Table of signal parameter values for","isMC=",isMC,"region=",region)
     print_signal_header()
     counts = []
     for trigger,lumi in triggers:
-        count,err = print_signal_row(dct,trigger,lumi,isMC=isMC,region=region)
+        count,err = print_signal_row(dct,trigger,lumi,isMC=isMC,region=region,blind=blind)
         counts.append((count,err))
     print()
     return counts
@@ -121,7 +122,7 @@ def expectation(val,lumi,err=None,region="Jpsi"):
     exp_err = exp * (eff_err/eff)
     return (exp,exp_err)
 
-def print_comparison_table(dct,triggers,region="Jpsi"):
+def print_comparison_table(dct,triggers,region="Jpsi",blind=False):
     print("Comparison for observed (data) and expected (MC) in region",region)
     print_comparison_header()
     ratios = []
@@ -137,15 +138,17 @@ def print_comparison_table(dct,triggers,region="Jpsi"):
         exp,exp_err = expectation(val,lumi,err,region)
         print(f"{exp:7.1f}+/-{exp_err:5.1f}, ",end="")
         obs,obs_err = val_err(data,"signal_num")
-        print(f'{obs:7.1f}+/-{obs_err:5.1f} ',end='')
+        if blind==False: print(f'{obs:7.1f}+/-{obs_err:5.1f} ',end='')
+        else: print('        blinded ',end='')
         ratio = obs/exp if exp > 0. else 0.
         ratio_err = math.sqrt(exp)/exp * ratio if exp > 0. else 0.
-        print(f'{ratio:5.2f}+/-{ratio_err:5.2f} ',end='')
+        if blind==False: print(f'{ratio:5.2f}+/-{ratio_err:5.2f} ',end='')
+        else: print('      blinded ',end='')
         print()
         ratios.append((ratio,ratio_err))
     return ratios
 
-def summary(filename,triggers=None) :
+def summary(filename,triggers=None,blind=True) :
 
     print("Parsing json file ...")
 
@@ -174,13 +177,13 @@ def summary(filename,triggers=None) :
     data_psi2s = print_signal_table(dct,triggers,isMC="data",region="Psi2S")
     print_bkgd_table(dct,triggers,region="Psi2S",partial=_partial)
     mc_lowq2 = print_signal_table(dct,triggers,isMC="mc",region="LowQ2")
-    data_lowq2 = print_signal_table(dct,triggers,isMC="data",region="LowQ2")
+    data_lowq2 = print_signal_table(dct,triggers,isMC="data",region="LowQ2",blind=blind)
     print_bkgd_table(dct,triggers,region="LowQ2",partial=_partial)
 
     # Comparison
     ratios_jpsi = print_comparison_table(dct,triggers,region="Jpsi")
     ratios_psi2s = print_comparison_table(dct,triggers,region="Psi2S")
-    ratios_lowq2 = print_comparison_table(dct,triggers,region="LowQ2")
+    ratios_lowq2 = print_comparison_table(dct,triggers,region="LowQ2",blind=blind)
 
     # Compare 
     print()
@@ -226,22 +229,23 @@ def summary(filename,triggers=None) :
         print(
             f'Trigger: {trg:16s}',
             f'  Obs/Exp @ Jpsi: {r_jpsi[0]:4.2f}',
-            f'  Exp @ LowQ2: {m_psi2s[0]:5.1f}',
-            f'  Pred @ LowQ2: {m_psi2s[0]*r_jpsi[0]:5.1f}',
-            f'  Obs @ LowQ2: {d_psi2s[0]:5.1f}',
+            f'  Exp @ Psi2S: {m_psi2s[0]:5.1f}',
+            f'  Pred @ Psi2S: {m_psi2s[0]*r_jpsi[0]:5.1f}',
+            f'  Obs @ Psi2S: {d_psi2s[0]:5.1f}',
             )
 
     # Predict LowQ2 (blinded)
     print()
     print("Predict @ low q2")
-    for (trg,lumi),r_jpsi,m_lowq2,_ in zip(triggers,ratios_jpsi,mc_lowq2,data_lowq2):
+    for (trg,lumi),r_jpsi,m_lowq2,d_lowq2 in zip(triggers,ratios_jpsi,mc_lowq2,data_lowq2):
         m_lowq2 = expectation(m_lowq2[0],lumi,m_lowq2[1],"LowQ2")
         print(
             f'Trigger: {trg:16s}',
             f'  Obs/Exp @ Jpsi: {r_jpsi[0]:4.2f}',
             f'  Exp @ LowQ2: {m_lowq2[0]:5.1f}',
             f'  Pred @ LowQ2: {m_lowq2[0]*r_jpsi[0]:5.1f}',
-            #f'  Obs @ LowQ2: {d_lowq2[0]:5.1f}', #@@
+            '  Obs @ LowQ2:',
+            f'{d_lowq2[0]:5.1f}' if blind==False else 'blinded',
             )
     
 ################################################################################
@@ -267,4 +271,4 @@ if __name__ == "__main__":
         ("L1_5p5_HLT_6p0",0.15),
         ("L1_5p5_HLT_4p0",0.00),
     ]
-    summary(filename,triggers=triggers)
+    summary(filename,triggers=triggers,blind=True)
