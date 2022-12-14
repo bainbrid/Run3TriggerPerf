@@ -678,6 +678,7 @@ if __name__ == "__main__":
     # 3) run over data, fixed signal shape, determine comb params (signal:read,fix, comb:write)
     # 4) run over data, fixed signal and comb shapes, check part shape (signal:read,fix, comb:read,fix)
     # 5) run over data, fixed signal and comb shapes, determine part shape (signal:read,fix, comb:read,fix, part:add,write)
+    # 6) run over data, fixed signal and comb and part shapes (signal:read,fix,write comb:read,fix part:read,fix)
         
     # Loop
     for _sample in samples:#[:1]:
