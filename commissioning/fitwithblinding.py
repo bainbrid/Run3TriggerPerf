@@ -659,7 +659,7 @@ def fit_new(
       for param in params:
         if param.GetName() in ["signal_num","cb_alphaL","cb_alphaR","cb_mean","cb_nL","cb_nR","cb_sigma"]:
           dct[isMC_str][region][trigger_str][param.GetName()] = (param.getVal(),param.getVal()-param.getError(),param.getVal()+param.getError())
-          #if param.GetName() == "signal_num" and region == "LowQ2" and isMC:
+          #if param.GetName() == "signal_num" and region == "LowQ2" and isMC: add two sigma for Lowq^2
             #dct["mc"]["LowQ2"][trigger_str][signal_num.GetName()] = (signal_in2sig,signal_in2sig-signal_num.getError()*signal_window.getVal(),signal_in2sig+signal_num.getError()*signal_window.getVal())
     if write_comb_params==True:
       for param in params:
