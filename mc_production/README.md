@@ -7,8 +7,10 @@ cmsrel CMSSW_12_4_10
 cd CMSSW_12_4_10/src
 cmsenv
 git cms-init
+git cms-addpkg Configuration/Generator
+git clone git@github.com:DiElectronX/GENfragments.git Configuration/GENfragments
 git cms-merge-topic bainbrid:EGHLTCustomisation_1230pre6 # required for step3
-scram b -j 4
+scram b -j8
 voms-proxy-init --voms cms -valid 192:00
 ```
 
@@ -17,10 +19,6 @@ voms-proxy-init --voms cms -valid 192:00
 Performs GEN,SIM steps. (5000 toys will give 100 events based on GEN filter eff of 2%.)
 
 ```
-git cms-addpkg Configuration/Generator
-git clone git@github.com:DiElectronX/GENfragments.git Configuration/GENfragments
-#cp Configuration/GENfragments/python/BuToKee_SoftQCD_pythia8_evtgen.py Configuration/Generator/python/
-scram b -j8
 cmsDriver.py Configuration/GENfragments/python/BuToKee_SoftQCD_pythia8_evtgen.py --mc --eventcontent RAWSIM --datatier GEN-SIM --conditions 124X_mcRun3_2022_realistic_v12 --beamspot Realistic25ns13p6TeVEarly2022Collision --step GEN,SIM --geometry DB:Extended --era Run3 --fileout file:step0.root --no_exec --python_filename step0_cfg.py -n 5000
 cmsRun step0_cfg.py >& step0.log &
 ```
