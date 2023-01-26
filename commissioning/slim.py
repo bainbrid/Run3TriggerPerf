@@ -4,6 +4,7 @@ import time
 import uproot as uproot
 import json
 import bisect
+import pandas as pd
 
 import numpy as np
 np.seterr(divide='ignore', invalid='ignore')
@@ -37,22 +38,31 @@ dct = {
         "Run2022Dv2_Jpsi":["./input/ntuples/2022Sep05/ntuple_2022Sep05_Run2022Dv2.root"],
     },
     "2022Oct12":{
-        "BuToKJpsi_Toee": ["./input/ntuples/2022Oct12/ntuple_2022Oct12_BuToKJpsi_Toee.root"],
-        "BuToKPsi2S_Toee":["./input/ntuples/2022Oct12/ntuple_2022Oct12_BuToKPsi2S_Toee.root"],
-        "BuToKee":        ["./input/ntuples/2022Oct12/ntuple_2022Oct12_BuToKee.root"],
+        "BuToKJpsi_Toee": ["./input/ntuples/2022Oct12/newMCJpsid0.root"],
+        "BuToKPsi2S_Toee":["./input/ntuples/2022Oct12/newMCPsi2sd0.root"],
+        "BuToKee":        ["./input/ntuples/2022Oct12/newMCKEEd0.root"],
         # Eras B+C+D
         "Run2022_Jpsi":[
-            "./input/ntuples/2022Oct12/ntuple_2022Oct12_Run2022C.root",
-            "./input/ntuples/2022Oct12/ntuple_2022Oct12_Run2022Dv1.root",
-            "./input/ntuples/2022Oct12/ntuple_2022Oct12_Run2022Dv2.root"],
+            "./input/ntuples/2022Oct12/ntuple_2022Jan04_Run2022C.root",
+            "./input/ntuples/2022Oct12/ntuple_2022Jan04_Run2022Dv1.root",
+            "./input/ntuples/2022Oct12/ntuple_2022Jan04_Run2022Dv2.root",
+            "./input/ntuples/2022Oct12/ntuple_2022Jan04_Run2022E.root",
+            "./input/ntuples/2022Oct12/ntuple_2022Jan04_Run2022F.root",
+            "./input/ntuples/2022Oct12/ntuple_2022Jan04_Run2022G.root"],
         "Run2022_Psi2S":[
-            "./input/ntuples/2022Oct12/ntuple_2022Oct12_Run2022C.root",
-            "./input/ntuples/2022Oct12/ntuple_2022Oct12_Run2022Dv1.root",
-            "./input/ntuples/2022Oct12/ntuple_2022Oct12_Run2022Dv2.root"],
+            "./input/ntuples/2022Oct12/ntuple_2022Jan04_Run2022C.root",
+            "./input/ntuples/2022Oct12/ntuple_2022Jan04_Run2022Dv1.root",
+            "./input/ntuples/2022Oct12/ntuple_2022Jan04_Run2022Dv2.root",
+            "./input/ntuples/2022Oct12/ntuple_2022Jan04_Run2022E.root",
+            "./input/ntuples/2022Oct12/ntuple_2022Jan04_Run2022F.root",
+            "./input/ntuples/2022Oct12/ntuple_2022Jan04_Run2022G.root"],
         "Run2022_LowQ2":[
-            "./input/ntuples/2022Oct12/ntuple_2022Oct12_Run2022C.root",
-            "./input/ntuples/2022Oct12/ntuple_2022Oct12_Run2022Dv1.root",
-            "./input/ntuples/2022Oct12/ntuple_2022Oct12_Run2022Dv2.root"],
+            "./input/ntuples/2022Oct12/ntuple_2022Jan04_Run2022C.root",
+            "./input/ntuples/2022Oct12/ntuple_2022Jan04_Run2022Dv1.root",
+            "./input/ntuples/2022Oct12/ntuple_2022Jan04_Run2022Dv2.root",
+            "./input/ntuples/2022Oct12/ntuple_2022Jan04_Run2022E.root",
+            "./input/ntuples/2022Oct12/ntuple_2022Jan04_Run2022F.root",
+            "./input/ntuples/2022Oct12/ntuple_2022Jan04_Run2022G.root"],
     },
     "2022Nov14":{
         "BuToKJpsi_Toee":["./input/ntuples/2022Nov14/ntuple_2022Oct12_BuToKJpsi_Toee.root"],
@@ -69,6 +79,12 @@ bmass_values=[]
 bmass_nvalues=0
 initial=0
 
+#trigger list
+TriggerList = ["trigger_OR","L1_11p0_HLT_6p5","L1_10p5_HLT_6p5","L1_10p5_HLT_5p0","L1_9p0_HLT_6p0", "L1_8p5_HLT_5p5", "L1_8p5_HLT_5p0", "L1_8p0_HLT_5p0", "L1_7p5_HLT_5p0", "L1_7p0_HLT_5p0", "L1_6p5_HLT_4p5", "L1_6p0_HLT_4p0", "L1_5p5_HLT_6p0", "L1_5p5_HLT_4p0", "L1_5p0_HLT_4p0", "L1_4p5_HLT_4p0"]
+
+
+
+
 # Interesting variables
 branches_used = ['theRun','theEvent', # 'theLumi'
                  'isBToKEE','inAcc','isMatched',
@@ -76,16 +92,11 @@ branches_used = ['theRun','theEvent', # 'theLumi'
                  'e1_reco_pt','e2_reco_pt','e1_reco_eta','e2_reco_eta','e12_reco_dr',
                  'e1_reco_loose','e2_reco_loose','e1_reco_medium','e2_reco_medium','e1_reco_tight','e2_reco_tight',
                  'ip3d','cos2d','bdt','mll','b_mass','b_mass_err',
-                 'b_pt','b_l1_pt','b_l2_pt','b_k_pt','b_cos2D','b_lxy','b_lxyerr','b_svprob'
+                 'b_pt','b_l1_pt','b_l2_pt','b_k_pt','b_cos2D','b_lxy','b_lxyerr','b_svprob','BToKEE_D0_mass_LepToK_KToPi', 'BToKEE_D0_mass_LepToPi_KToK',
+                 'BToKEE_llkDR','BToKEE_eleDR'
                  ]
 # JSON files
-branches_used.extend([
-    'JSON_TOTAL',
-    'JSON_L1_11p0_HLT_6p5_final','JSON_L1_10p5_HLT_6p5_final','JSON_L1_10p5_HLT_5p0_final',
-    'JSON_L1_8p5_HLT_5p0_final','JSON_L1_8p0_HLT_5p0_final','JSON_L1_7p0_HLT_5p0_final',
-    'JSON_L1_6p5_HLT_4p5_final','JSON_L1_6p0_HLT_4p0_final','JSON_L1_5p5_HLT_6p0_final',
-    'JSON_L1_5p5_HLT_4p0_final',
-    ])
+branches_used.extend(["JSON_trigger_OR",*('JSON_'+ word +'_Excl_Final' for word in TriggerList)])
 
 # HLT paths
 branches_used.extend([
@@ -103,7 +114,7 @@ branches_used.extend([
 print("branches_used:",branches_used)
 
 # Print content of trigger efficiency scale factors
-jsonFile = open('input/corrections/dietrig_scalefactors.json','r')
+jsonFile = open('input/corrections/dietrig_exclscalefactors.json','r')
 jsonDict = json.load(jsonFile)
 print(" "*16," ".join([ f"{pt:4.1f}      " for pt in list(jsonDict.values())[0]["pT"] ]))
 for (trigger,payload) in jsonDict.items():
@@ -143,7 +154,22 @@ for dataset,samples in dct[tag].items() :
     name_output = "./output/"+tag+"/slimmed/slimmed_"+dataset+".root"
     file_output = uproot.recreate(name_output)
     file_output.mktree("tree",{
-        "weight": ("float",(1,)),
+        "weight_trigger_OR": ("float",(1,)),
+        "weight_L1_11p0_HLT_6p5": ("float",(1,)),
+        "weight_L1_10p5_HLT_6p5": ("float",(1,)),
+        "weight_L1_10p5_HLT_5p0": ("float",(1,)),
+        "weight_L1_9p0_HLT_6p0": ("float",(1,)),
+        "weight_L1_8p5_HLT_5p5": ("float",(1,)),
+        "weight_L1_8p5_HLT_5p0": ("float",(1,)),
+        "weight_L1_8p0_HLT_5p0": ("float",(1,)),
+        "weight_L1_7p5_HLT_5p0": ("float",(1,)),
+        "weight_L1_7p0_HLT_5p0": ("float",(1,)),
+        "weight_L1_6p5_HLT_4p5": ("float",(1,)),
+        "weight_L1_6p0_HLT_4p0": ("float",(1,)),
+        "weight_L1_5p5_HLT_6p0": ("float",(1,)),
+        "weight_L1_5p5_HLT_4p0": ("float",(1,)),
+        "weight_L1_5p0_HLT_4p0": ("float",(1,)),
+        "weight_L1_4p5_HLT_4p0": ("float",(1,)),        
         "b_mass": ("float",(1,)),
         "b_mass_reduced": ("float",(1,)),
         "mll": ("float",(1,)),
@@ -151,13 +177,18 @@ for dataset,samples in dct[tag].items() :
         "L1_11p0_HLT_6p5": ("int",(1,)),
         "L1_10p5_HLT_6p5": ("int",(1,)),
         "L1_10p5_HLT_5p0": ("int",(1,)),
+        "L1_9p0_HLT_6p0": ("int",(1,)),
+        "L1_8p5_HLT_5p5": ("int",(1,)),
         "L1_8p5_HLT_5p0": ("int",(1,)),
         "L1_8p0_HLT_5p0": ("int",(1,)),
+        "L1_7p5_HLT_5p0": ("int",(1,)),
         "L1_7p0_HLT_5p0": ("int",(1,)),
         "L1_6p5_HLT_4p5": ("int",(1,)),
         "L1_6p0_HLT_4p0": ("int",(1,)),
         "L1_5p5_HLT_6p0": ("int",(1,)),
         "L1_5p5_HLT_4p0": ("int",(1,)),
+        "L1_5p0_HLT_4p0": ("int",(1,)),
+        "L1_4p5_HLT_4p0": ("int",(1,)),
         #"HLT_DoubleEle6p5":("int",(1,)),
         #"HLT_DoubleEle5p0":("int",(1,)),
         #"HLT_DoubleEle4p5":("int",(1,)),
@@ -176,8 +207,8 @@ for dataset,samples in dct[tag].items() :
                          num_workers=100) as file_input:
         
             print(" Input:",name_input)
-            # print(" Available branches",file_input.keys())
-            # print(" Branches used",branches_used)
+            print(" Available branches",file_input.keys())
+            print(" Branches used",branches_used)
             ibatch=0
 
             for batch in file_input.iterate(step_size="10 mb",
@@ -187,11 +218,20 @@ for dataset,samples in dct[tag].items() :
                 ##########
                 # INIT
                 ##########
+#                dd =ak.to_pandas(batch)
+#                mask = dd.columns.str.contains('L1_DoubleEG*')
+#                newdd =dd.loc[:,mask]
+#                mask2 = newdd.eq(1)
+#                newdd['first'] = np.where(mask2.any(1), newdd.columns[mask2.values.argmax(1)], 'No Match')
+#                newdd.loc['total'] = newdd.sum(numeric_only=True, axis=0)
+#                print("reeee",newdd)
 
+                
                 #if ibatch >= 1 : continue
                 print("  ibatch:",ibatch)
                 ibatch+=1
-
+                counter = 0
+                
                 # Calc Lxy significance
                 batch['b_lxysig'] = batch['b_lxy']/batch['b_lxyerr']
 
@@ -199,13 +239,17 @@ for dataset,samples in dct[tag].items() :
                 batch['b_mass_reduced'] = batch['b_mass'] - batch['mll'] + 3.0969
 
                 # Weight MC events (e.g. by trigger scale factors)
-                batch['weight'] = 1.
-                #print("isData",isData)
-                if isData == False:
-                    #weights = [ scale_factor(jsonDict,"L1_10p5_HLT_6p5",pt) for pt in batch['e2_reco_pt'] ]
-                    weights = [ scale_factor(jsonDict,"L1_6p5_HLT_4p5",pt) for pt in batch['e2_reco_pt'] ]
-                    batch['weight'] = weights
-                    #print("weights",weights[:20])
+                for triggers in TriggerList:
+
+                    batch['weight_'+triggers] = 1.
+                    #print("isData",isData)
+                    if isData == False:
+                            weights = [ scale_factor(jsonDict,triggers+"_Excl",pt) for pt in batch['e2_reco_pt'] ]
+                            batch['weight_'+triggers] = weights
+                            
+                            #batch['weight_'+triggers] = 1.
+
+                            #print("weights",weights[:20])
                     
                 mll_cut = (batch['mll']>1.05) & (batch['mll']<2.45) if region == "LowQ2" \
                   else (batch['mll']>2.9) & (batch['mll']<3.2) if region == "Jpsi" \
@@ -225,7 +269,7 @@ for dataset,samples in dct[tag].items() :
                     & (batch['e1_reco_pt']>4.) & (batch['e2_reco_pt']>4.) # ele pT
                     & mll_cut # mll region
                     & (batch['b_k_pt']>0.5) # kaon pT
-                    & (batch['b_cos2D']>0.999) # cut-based
+                    & (batch['cos2d']>0.999) # cut-based
                     & (batch['b_svprob']>0.1) # cut-based
                     #& (batch['b_pt']>15.) # cut-based
                     & (batch['b_lxysig']>10.) # cut-based
@@ -242,7 +286,7 @@ for dataset,samples in dct[tag].items() :
                     & (batch['e1_reco_pt']>5.) & (batch['e2_reco_pt']>5.) # ele pT
                     & mll_cut # mll region
                     & (batch['b_k_pt']>5.) # kaon pT
-                    & (batch['b_cos2D']>0.99) # cut-based
+                    & (batch['cos2d']>0.99) # cut-based
                     & (batch['b_svprob']>0.01) # cut-based
                     & (batch['b_pt']>15.) # cut-based
                     & (batch['b_lxysig']>10.) # cut-based
@@ -260,7 +304,7 @@ for dataset,samples in dct[tag].items() :
                     & (batch['e1_reco_pt']>5.) & (batch['e2_reco_pt']>5.) # ele pT
                     & mll_cut # mll region
                     & (batch['b_k_pt']>1.0) # kaon pT ???
-                    & (batch['b_cos2D']>0.8) # cut-based ???
+                    & (batch['cos2d']>0.8) # cut-based ???
                     & (batch['b_svprob']>0.01) # cut-based
                     & (batch['b_pt']>15.) # cut-based
                     #& (batch['b_lxysig']>0.5) # cut-based ???
@@ -278,7 +322,7 @@ for dataset,samples in dct[tag].items() :
                     & (batch['e1_reco_pt']>5.) & (batch['e2_reco_pt']>5.) # ele pT
                     & mll_cut # mll region
                     & (batch['b_k_pt']>0.5) # kaon pT ???
-                    & (batch['b_cos2D']>0.99) # cut-based ???
+                    & (batch['cos2d']>0.99) # cut-based ???
                     & (batch['b_svprob']>0.01) # cut-based
                     & (batch['b_pt']>15.) # cut-based
                     & (batch['b_lxysig']>1.) # cut-based ???
@@ -293,14 +337,35 @@ for dataset,samples in dct[tag].items() :
                     & (batch['e1_reco_loose']==1) & (batch['e2_reco_loose']==1) # ele ID
                     & (batch['e1_reco_pt']<100.) & (batch['e2_reco_pt']<100.) # ele "ID"
                     & (np.abs(batch['e1_reco_eta'])<1.2) & (np.abs(batch['e2_reco_eta'])<1.2) # ele eta
-                    & (batch['e1_reco_pt']>10.) & (batch['e2_reco_pt']>10.) # ele pT
+                    & (batch['e1_reco_pt']>4.) & (batch['e2_reco_pt']>4.) # ele pT
                     & mll_cut # mll region
                     & (batch['b_k_pt']>0.5) # kaon pT ???
-                    & (batch['b_cos2D']>0.99) # cut-based ???
+                    & (batch['cos2d']>0.99) # cut-based ???
                     & (batch['b_svprob']>0.01) # cut-based
-                    & (batch['b_pt']>15.) # cut-based
+                    & (batch['b_pt']>10.) # cut-based
                     & (batch['b_lxysig']>1.) # cut-based ???
-                    #& (batch['bdt']>8.) # BDT-based (was removed for Psi2S...!!!)
+                    & (batch['bdt']>8.) # BDT-based (was removed for Psi2S...!!!)
+                    & (batch['b_mass']>4.7) & (batch['b_mass']<5.7) # B mass window
+                    )
+                cuts_2018 = (
+                    (batch['inAcc']==1) & (batch['isMatched']==1) # GEN
+                    #& (batch['HLT_DoubleEle6p5']==1) # Trigger
+                    & (batch['e1_reco_loose']==1) & (batch['e2_reco_loose']==1) # ele ID
+                    & (batch['e1_reco_pt']<100.) & (batch['e2_reco_pt']<100.) # ele "ID"
+                    & (np.abs(batch['e1_reco_eta'])<1.2) & (np.abs(batch['e2_reco_eta'])<1.2) # ele eta
+                    & (batch['e1_reco_pt']>4.) & (batch['e2_reco_pt']>4.) # ele pT
+                    & mll_cut # mll region
+                    & (np.abs(batch["ip3d"]) < 0.06)
+                    & (batch['b_k_pt']>0.5) # kaon pT ???
+                    & (batch['cos2d']>0.95) # cut-based ???
+                    & (batch['b_svprob']>0.00001) # cut-based
+                    & (batch['b_pt']>1.75) # cut-based
+                    #& (batch['b_lxysig']>1.) # cut-based ???
+                    & (batch['BToKEE_llkDR'] > 0.03)
+                    & (batch['BToKEE_eleDR'] > 0.03)
+                    & (batch['BToKEE_D0_mass_LepToK_KToPi'] > 2.)
+                    & (batch['BToKEE_D0_mass_LepToPi_KToK'] > 2.)
+                    & (batch['bdt']>9.5) # BDT-based (was removed for Psi2S...!!!)
                     & (batch['b_mass']>4.7) & (batch['b_mass']<5.7) # B mass window
                     )
 
@@ -309,9 +374,9 @@ for dataset,samples in dct[tag].items() :
                 ##########
                 
                 cuts = None
-                if   region=="LowQ2": cuts = cuts_tight
-                elif region=="Jpsi":  cuts = cuts_rob
-                elif region=="Psi2S": cuts = cuts_loose
+                if   region=="LowQ2": cuts = cuts_2018
+                elif region=="Jpsi":  cuts = cuts_2018
+                elif region=="Psi2S": cuts = cuts_2018
                 else:
                     print("Region unknown!",region)
                     quit()
@@ -323,29 +388,40 @@ for dataset,samples in dct[tag].items() :
                 cuts_L1_11p0_HLT_6p5 = (batch['L1_DoubleEG11p0',cuts]==1) & (batch['HLT_DoubleEle6p5',cuts]==1)
                 cuts_L1_10p5_HLT_6p5 = (batch['L1_DoubleEG10p5',cuts]==1) & (batch['HLT_DoubleEle6p5',cuts]==1)
                 cuts_L1_10p5_HLT_5p0 = (batch['L1_DoubleEG10p5',cuts]==1) & (batch['HLT_DoubleEle5p0',cuts]==1)
+                cuts_L1_9p0_HLT_6p0  = (batch['L1_DoubleEG9p0',cuts]==1)  & (batch['HLT_DoubleEle6p0',cuts]==1)
+                cuts_L1_8p5_HLT_5p5  = (batch['L1_DoubleEG8p5',cuts]==1)  & (batch['HLT_DoubleEle5p5',cuts]==1)
                 cuts_L1_8p5_HLT_5p0  = (batch['L1_DoubleEG8p5',cuts]==1)  & (batch['HLT_DoubleEle5p0',cuts]==1)
                 cuts_L1_8p0_HLT_5p0  = (batch['L1_DoubleEG8p0',cuts]==1)  & (batch['HLT_DoubleEle5p0',cuts]==1)
+                cuts_L1_7p5_HLT_5p0  = (batch['L1_DoubleEG7p5',cuts]==1)  & (batch['HLT_DoubleEle5p0',cuts]==1)
                 cuts_L1_7p0_HLT_5p0  = (batch['L1_DoubleEG7p0',cuts]==1)  & (batch['HLT_DoubleEle5p0',cuts]==1)
                 cuts_L1_6p5_HLT_4p5  = (batch['L1_DoubleEG6p5',cuts]==1)  & (batch['HLT_DoubleEle4p5',cuts]==1)
                 cuts_L1_6p0_HLT_4p0  = (batch['L1_DoubleEG6p0',cuts]==1)  & (batch['HLT_DoubleEle4p0',cuts]==1)
                 cuts_L1_5p5_HLT_6p0  = (batch['L1_DoubleEG5p5',cuts]==1)  & (batch['HLT_DoubleEle6p0',cuts]==1)
                 cuts_L1_5p5_HLT_4p0  = (batch['L1_DoubleEG5p5',cuts]==1)  & (batch['HLT_DoubleEle4p0',cuts]==1)
+                cuts_L1_5p0_HLT_4p0  = (batch['L1_DoubleEG5p0',cuts]==1)  & (batch['HLT_DoubleEle4p0',cuts]==1)
+                cuts_L1_4p5_HLT_4p0  = (batch['L1_DoubleEG4p5',cuts]==1)  & (batch['HLT_DoubleEle4p0',cuts]==1)
+
                 #cuts_HLT_6p5 = (batch['HLT_DoubleEle6p5',cuts]==1)
                 #cuts_HLT_5p0 = (batch['HLT_DoubleEle5p0',cuts]==1)
                 #cuts_HLT_4p5 = (batch['HLT_DoubleEle4p5',cuts]==1)
                 #cuts_HLT_4p0 = (batch['HLT_DoubleEle4p0',cuts]==1)
 
                 if isData:
-                    cuts_L1_11p0_HLT_6p5 = cuts_L1_11p0_HLT_6p5 & (batch['JSON_L1_11p0_HLT_6p5_final',cuts]==1)
-                    cuts_L1_10p5_HLT_6p5 = cuts_L1_10p5_HLT_6p5 & (batch['JSON_L1_10p5_HLT_6p5_final',cuts]==1)
-                    cuts_L1_10p5_HLT_5p0 = cuts_L1_10p5_HLT_5p0 & (batch['JSON_L1_10p5_HLT_5p0_final',cuts]==1)
-                    cuts_L1_8p5_HLT_5p0  = cuts_L1_8p5_HLT_5p0  & (batch['JSON_L1_8p5_HLT_5p0_final',cuts]==1)
-                    cuts_L1_8p0_HLT_5p0  = cuts_L1_8p0_HLT_5p0  & (batch['JSON_L1_8p0_HLT_5p0_final',cuts]==1)
-                    cuts_L1_7p0_HLT_5p0  = cuts_L1_7p0_HLT_5p0  & (batch['JSON_L1_7p0_HLT_5p0_final',cuts]==1)
-                    cuts_L1_6p5_HLT_4p5  = cuts_L1_6p5_HLT_4p5  & (batch['JSON_L1_6p5_HLT_4p5_final',cuts]==1)
-                    cuts_L1_6p0_HLT_4p0  = cuts_L1_6p0_HLT_4p0  & (batch['JSON_L1_6p0_HLT_4p0_final',cuts]==1)
-                    cuts_L1_5p5_HLT_6p0  = cuts_L1_5p5_HLT_6p0  & (batch['JSON_L1_5p5_HLT_6p0_final',cuts]==1)
-                    cuts_L1_5p5_HLT_4p0  = cuts_L1_5p5_HLT_4p0  & (batch['JSON_L1_5p5_HLT_4p0_final',cuts]==1)
+                    cuts_L1_11p0_HLT_6p5 = cuts_L1_11p0_HLT_6p5 & (batch['JSON_L1_11p0_HLT_6p5_Excl_Final',cuts]==1)
+                    cuts_L1_10p5_HLT_6p5 = cuts_L1_10p5_HLT_6p5 & (batch['JSON_L1_10p5_HLT_6p5_Excl_Final',cuts]==1)
+                    cuts_L1_10p5_HLT_5p0 = cuts_L1_10p5_HLT_5p0 & (batch['JSON_L1_10p5_HLT_5p0_Excl_Final',cuts]==1)
+                    cuts_L1_9p0_HLT_6p0  = cuts_L1_9p0_HLT_6p0  & (batch['JSON_L1_9p0_HLT_6p0_Excl_Final',cuts]==1)
+                    cuts_L1_8p5_HLT_5p5  = cuts_L1_8p5_HLT_5p5  & (batch['JSON_L1_8p5_HLT_5p5_Excl_Final',cuts]==1)
+                    cuts_L1_8p5_HLT_5p0  = cuts_L1_8p5_HLT_5p0  & (batch['JSON_L1_8p5_HLT_5p0_Excl_Final',cuts]==1)
+                    cuts_L1_8p0_HLT_5p0  = cuts_L1_8p0_HLT_5p0  & (batch['JSON_L1_8p0_HLT_5p0_Excl_Final',cuts]==1)
+                    cuts_L1_7p5_HLT_5p0  = cuts_L1_7p5_HLT_5p0  & (batch['JSON_L1_7p5_HLT_5p0_Excl_Final',cuts]==1)
+                    cuts_L1_7p0_HLT_5p0  = cuts_L1_7p0_HLT_5p0  & (batch['JSON_L1_7p0_HLT_5p0_Excl_Final',cuts]==1)
+                    cuts_L1_6p5_HLT_4p5  = cuts_L1_6p5_HLT_4p5  & (batch['JSON_L1_6p5_HLT_4p5_Excl_Final',cuts]==1)
+                    cuts_L1_6p0_HLT_4p0  = cuts_L1_6p0_HLT_4p0  & (batch['JSON_L1_6p0_HLT_4p0_Excl_Final',cuts]==1)
+                    cuts_L1_5p5_HLT_6p0  = cuts_L1_5p5_HLT_6p0  & (batch['JSON_L1_5p5_HLT_6p0_Excl_Final',cuts]==1)
+                    cuts_L1_5p5_HLT_4p0  = cuts_L1_5p5_HLT_4p0  & (batch['JSON_L1_5p5_HLT_4p0_Excl_Final',cuts]==1)
+                    cuts_L1_5p0_HLT_4p0  = cuts_L1_5p0_HLT_4p0  & (batch['JSON_L1_5p0_HLT_4p0_Excl_Final',cuts]==1)
+                    cuts_L1_4p5_HLT_4p0  = cuts_L1_4p5_HLT_4p0  & (batch['JSON_L1_4p5_HLT_4p0_Excl_Final',cuts]==1)
                     #cuts_HLT_6p5 = cuts_HLT_6p5 & (batch['JSON_L1_10p5_HLT_6p5_final',cuts]==1)
                     #cuts_HLT_5p0 = cuts_HLT_5p0 & (batch['JSON_L1_8p0_HLT_5p0_final',cuts]==1)
                     #cuts_HLT_4p5 = cuts_HLT_4p5 & (batch['JSON_L1_6p5_HLT_4p5_final',cuts]==1)
@@ -354,7 +430,8 @@ for dataset,samples in dct[tag].items() :
                 cuts_trigger_OR = (
                     cuts_L1_11p0_HLT_6p5 | cuts_L1_10p5_HLT_6p5 | cuts_L1_10p5_HLT_5p0 | cuts_L1_8p5_HLT_5p0 |
                     cuts_L1_8p0_HLT_5p0 | cuts_L1_7p0_HLT_5p0 | cuts_L1_6p5_HLT_4p5 | cuts_L1_6p0_HLT_4p0 |
-                    cuts_L1_5p5_HLT_6p0 | cuts_L1_5p5_HLT_4p0
+                    cuts_L1_5p5_HLT_6p0 | cuts_L1_5p5_HLT_4p0 | cuts_L1_4p5_HLT_4p0 | cuts_L1_5p0_HLT_4p0 |
+                    cuts_L1_7p5_HLT_5p0 | cuts_L1_9p0_HLT_6p0
                 )
                     
                 ##########
@@ -370,8 +447,22 @@ for dataset,samples in dct[tag].items() :
                 values1 = [[i] for i in batch["b_mass",cuts].tolist()]
                 values2 = [[i] for i in batch["b_mass_reduced",cuts].tolist()]
                 values3 = [[i] for i in batch["mll",cuts].tolist()]
-                values4 = [[i] for i in batch["weight",cuts].tolist()]
-
+                values5 = [[i] for i in   batch["weight_trigger_OR", cuts].tolist()]
+                values5 = [[i] for i in   batch["weight_L1_11p0_HLT_6p5", cuts].tolist()]
+                values6 = [[i] for i in   batch["weight_L1_10p5_HLT_6p5", cuts].tolist()]
+                values7 = [[i] for i in   batch["weight_L1_10p5_HLT_5p0", cuts].tolist()]
+                values8 = [[i] for i in   batch["weight_L1_9p0_HLT_6p0", cuts].tolist()]
+                values9 = [[i] for i in   batch["weight_L1_8p5_HLT_5p5", cuts].tolist()]
+                values10 = [[i] for i in   batch["weight_L1_8p5_HLT_5p0", cuts].tolist()]
+                values11 = [[i] for i in   batch["weight_L1_8p0_HLT_5p0", cuts].tolist()]
+                values12 = [[i] for i in   batch["weight_L1_7p5_HLT_5p0", cuts].tolist()]
+                values13 = [[i] for i in   batch["weight_L1_7p0_HLT_5p0", cuts].tolist()]
+                values14 = [[i] for i in   batch["weight_L1_6p5_HLT_4p5", cuts].tolist()]
+                values15 = [[i] for i in   batch["weight_L1_6p0_HLT_4p0", cuts].tolist()]
+                values16 = [[i] for i in   batch["weight_L1_5p5_HLT_6p0", cuts].tolist()]
+                values17 = [[i] for i in   batch["weight_L1_5p5_HLT_4p0", cuts].tolist()]
+                values18 = [[i] for i in   batch["weight_L1_5p0_HLT_4p0", cuts].tolist()]
+                values19 = [[i] for i in   batch["weight_L1_4p5_HLT_4p0", cuts].tolist()]          
                 if False:
                     length=10
                     for br in branches_used: print(br,batch[br][:length])
@@ -386,17 +477,37 @@ for dataset,samples in dct[tag].items() :
                         "b_mass_reduced": values2[start: start + entries],
                         "mll": values3[start: start + entries],
                         "trigger_OR": [[i] for i in cuts_trigger_OR.tolist()][start: start + entries],
-                        "weight": values4[start: start + entries],
+                        "weight_trigger_OR": values5[start:start + entries],
+                        "weight_L1_11p0_HLT_6p5": values5[start:start + entries],
+                        "weight_L1_10p5_HLT_6p5": values6[start:start + entries],
+                        "weight_L1_10p5_HLT_5p0": values7[start:start + entries],
+                        "weight_L1_9p0_HLT_6p0": values8[start:start + entries],
+                        "weight_L1_8p5_HLT_5p5": values9[start:start + entries],
+                        "weight_L1_8p5_HLT_5p0": values10[start:start + entries],
+                        "weight_L1_8p0_HLT_5p0": values11[start:start + entries],
+                        "weight_L1_7p5_HLT_5p0": values12[start:start + entries],
+                        "weight_L1_7p0_HLT_5p0": values13[start:start + entries],
+                        "weight_L1_6p5_HLT_4p5": values14[start:start + entries],
+                        "weight_L1_6p0_HLT_4p0": values15[start:start + entries],
+                        "weight_L1_5p5_HLT_6p0": values16[start:start + entries],
+                        "weight_L1_5p5_HLT_4p0": values17[start:start + entries],
+                        "weight_L1_5p0_HLT_4p0": values18[start:start + entries],
+                        "weight_L1_4p5_HLT_4p0": values19[start:start + entries],                        
                         "L1_11p0_HLT_6p5": [[i] for i in cuts_L1_11p0_HLT_6p5.tolist()][start: start + entries],
-                        "L1_10p5_HLT_6p5": [[i] for i in cuts_L1_11p0_HLT_6p5.tolist()][start: start + entries],
-                        "L1_10p5_HLT_5p0": [[i] for i in cuts_L1_10p5_HLT_6p5.tolist()][start: start + entries],
-                        "L1_8p5_HLT_5p0":  [[i] for i in cuts_L1_10p5_HLT_5p0.tolist()][start: start + entries],
-                        "L1_8p0_HLT_5p0":  [[i] for i in cuts_L1_8p5_HLT_5p0 .tolist()][start: start + entries],
-                        "L1_7p0_HLT_5p0":  [[i] for i in cuts_L1_8p0_HLT_5p0 .tolist()][start: start + entries],
-                        "L1_6p5_HLT_4p5":  [[i] for i in cuts_L1_7p0_HLT_5p0 .tolist()][start: start + entries],
-                        "L1_6p0_HLT_4p0":  [[i] for i in cuts_L1_6p5_HLT_4p5 .tolist()][start: start + entries],
-                        "L1_5p5_HLT_6p0":  [[i] for i in cuts_L1_6p0_HLT_4p0 .tolist()][start: start + entries],
-                        "L1_5p5_HLT_4p0":  [[i] for i in cuts_L1_5p5_HLT_6p0 .tolist()][start: start + entries],
+                        "L1_10p5_HLT_6p5": [[i] for i in cuts_L1_10p5_HLT_6p5.tolist()][start: start + entries],
+                        "L1_10p5_HLT_5p0": [[i] for i in cuts_L1_10p5_HLT_5p0.tolist()][start: start + entries],
+                        "L1_9p0_HLT_6p0":  [[i] for i in cuts_L1_9p0_HLT_6p0 .tolist()][start: start + entries],
+                        "L1_8p5_HLT_5p5":  [[i] for i in cuts_L1_8p5_HLT_5p5 .tolist()][start: start + entries],
+                        "L1_8p5_HLT_5p0":  [[i] for i in cuts_L1_8p5_HLT_5p0.tolist()][start: start + entries],
+                        "L1_8p0_HLT_5p0":  [[i] for i in cuts_L1_8p0_HLT_5p0 .tolist()][start: start + entries],
+                        "L1_7p5_HLT_5p0":  [[i] for i in cuts_L1_7p5_HLT_5p0 .tolist()][start: start + entries],
+                        "L1_7p0_HLT_5p0":  [[i] for i in cuts_L1_7p0_HLT_5p0 .tolist()][start: start + entries],
+                        "L1_6p5_HLT_4p5":  [[i] for i in cuts_L1_6p5_HLT_4p5 .tolist()][start: start + entries],
+                        "L1_6p0_HLT_4p0":  [[i] for i in cuts_L1_6p0_HLT_4p0 .tolist()][start: start + entries],
+                        "L1_5p5_HLT_6p0":  [[i] for i in cuts_L1_5p5_HLT_6p0 .tolist()][start: start + entries],
+                        "L1_5p5_HLT_4p0":  [[i] for i in cuts_L1_5p5_HLT_4p0 .tolist()][start: start + entries],
+                        "L1_5p0_HLT_4p0":  [[i] for i in cuts_L1_5p0_HLT_4p0 .tolist()][start: start + entries],
+                        "L1_4p5_HLT_4p0":  [[i] for i in cuts_L1_4p5_HLT_4p0 .tolist()][start: start + entries],
                         #"HLT_DoubleEle6p5":[[i] for i in cuts_HLT_6p5.tolist()][start: start + entries],
                         #"HLT_DoubleEle5p0":[[i] for i in cuts_HLT_5p0.tolist()][start: start + entries],
                         #"HLT_DoubleEle4p5":[[i] for i in cuts_HLT_4p5.tolist()][start: start + entries],
