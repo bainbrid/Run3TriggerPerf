@@ -7,7 +7,7 @@ cmsrel CMSSW_12_4_10
 cd CMSSW_12_4_10/src
 cmsenv
 git cms-init
-git cms-merge-topic Sam-Harper:EGHLTCustomisation_1230pre6 # required for step3
+git cms-merge-topic bainbrid:EGHLTCustomisation_1230pre6 # required for step3
 scram b -j 4
 voms-proxy-init --voms cms -valid 192:00
 ```
