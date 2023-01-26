@@ -567,7 +567,7 @@ def fit_new(
   latex.SetTextSize(0.04)
   latex.DrawLatex(2.60,frame_main.GetMaximum()*1.01,"#bf{CMS} Preliminary")
   latex.DrawLatex(2.95,frame_main.GetMaximum()*1.01,"137 fb^{-1} (13 TeV)")
-  print("signal num 7777777777777777777777777777", signal_num.getVal())
+  print("signal num Total", signal_num.getVal())
   ################################################################################
   # DIAGNOSTIC
   
@@ -580,7 +580,7 @@ def fit_new(
   signal_window = signal_pdf.createIntegral(mass,ROOT.RooFit.NormSet(mass),ROOT.RooFit.Range("signal_window"))
   total_window = model.createIntegral(mass,ROOT.RooFit.NormSet(mass),ROOT.RooFit.Range("signal_window"))
   signal_in2sig = signal_num.getVal()*signal_window.getVal()
-  print("signal num 7777777777777777777777777777", signal_in2sig)
+  print("signal num in 2 sig region", signal_in2sig)
 
   if write_2sig_region_bkg==True:
     comb_window = comb_pdf.createIntegral(mass,ROOT.RooFit.NormSet(mass),ROOT.RooFit.Range("signal_window"))
