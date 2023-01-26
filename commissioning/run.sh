@@ -12,5 +12,5 @@ conda deactivate
 
 # Produce summary tables 
 conda activate root6
-python3 summary.py >& output/$TAG/logs/summarybdt7.log
+python3 summary.py >& output/$TAG/logs/summary.log
 conda deactivate
