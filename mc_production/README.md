@@ -7,8 +7,8 @@ cmsrel CMSSW_12_4_10
 cd CMSSW_12_4_10/src
 cmsenv
 git cms-init
-git cms-addpkg Configuration/Generator
-git clone git@github.com:DiElectronX/GENfragments.git Configuration/GENfragments
+git cms-addpkg Configuration/Generator # required for step0
+git clone git@github.com:DiElectronX/GENfragments.git Configuration/GENfragments # required for step0
 git cms-merge-topic bainbrid:EGHLTCustomisation_1230pre6 # required for step3
 scram b -j8
 voms-proxy-init --voms cms -valid 192:00
@@ -41,7 +41,7 @@ cmsDriver.py step2 --mc --eventcontent MINIAODSIM --datatier MINIAODSIM --condit
 cmsRun step2_cfg.py >& step2.log &
 ```
 
-### step3
+### step3: "mAOD + reHLT (open mode)"
 
 ```
 hltGetConfiguration /users/sharper/2022/egamma/EgOpen1240FrozenV1p2 --globaltag 124X_mcRun3_2022_realistic_v12 --mc --unprescale --output minimal --max-events 100 --eras Run3 --customise HLTrigger/Configuration/customizeHLTforEGamma.customiseEGammaMenuBPark --input file:step2.root > step3_cfg.py
