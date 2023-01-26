@@ -231,6 +231,7 @@ def summary(filename,triggers=None,blind=True) :
             f'  Obs/Exp @ Jpsi: {r_jpsi[0]:4.2f}',
             f'  Exp @ Psi2S: {m_psi2s[0]:5.1f}',
             f'  Pred @ Psi2S: {m_psi2s[0]*r_jpsi[0]:5.1f}',
+            f'  Number per fb :{m_psi2s[0]*r_jpsi[0]/lumi:4.2f}',
             f'  Obs @ Psi2S: {d_psi2s[0]:5.1f}',
             )
 
@@ -241,9 +242,12 @@ def summary(filename,triggers=None,blind=True) :
         m_lowq2 = expectation(m_lowq2[0],lumi,m_lowq2[1],"LowQ2")
         print(
             f'Trigger: {trg:16s}',
+            f'  Lint :{lumi:4.2f}',
             f'  Obs/Exp @ Jpsi: {r_jpsi[0]:4.2f}',
             f'  Exp @ LowQ2: {m_lowq2[0]:5.1f}',
             f'  Pred @ LowQ2: {m_lowq2[0]*r_jpsi[0]:5.1f}',
+            f'  Number per fb :{m_lowq2[0]*r_jpsi[0]/lumi:4.2f}',
+
             '  Obs @ LowQ2:',
             f'{d_lowq2[0]:5.1f}' if blind==False else 'blinded',
             )
@@ -258,17 +262,22 @@ if __name__ == "__main__":
     
     filename = 'output/'+tag+'/params/parameters.json'
     triggers = [
-#        ("trigger_none",7.36),
-#        ("trigger_OR",7.10),
-        ("L1_11p0_HLT_6p5",7.09),
-        ("L1_10p5_HLT_6p5",7.04),
-        ("L1_10p5_HLT_5p0",6.28),
-        ("L1_8p5_HLT_5p0",6.18),
-        ("L1_8p0_HLT_5p0",5.60),
-        ("L1_7p0_HLT_5p0",2.00),
-        ("L1_6p5_HLT_4p5",1.78),
-        ("L1_6p0_HLT_4p0",0.65),
-        ("L1_5p5_HLT_6p0",0.15),
-        ("L1_5p5_HLT_4p0",0.00),
+        #("trigger_none",7.36),
+        #("trigger_OR",33.8),
+        ("L1_11p0_HLT_6p5", 1.577),
+        ("L1_10p5_HLT_6p5", 1.136),
+        ("L1_10p5_HLT_5p0", 0.103),
+        ("L1_9p0_HLT_6p0",  8.844),
+        ("L1_8p5_HLT_5p5",  3.339),
+        ("L1_8p5_HLT_5p0",  0.675),
+        ("L1_8p0_HLT_5p0",  6.890),
+        ("L1_7p5_HLT_5p0",  1.635),
+        ("L1_7p0_HLT_5p0",  2.662),
+        ("L1_6p5_HLT_4p5",  3.611),
+        ("L1_6p0_HLT_4p0",  2.511),
+        ("L1_5p5_HLT_6p0",  0.150),
+        ("L1_5p5_HLT_4p0",  0.650),
+        ("L1_5p0_HLT_4p0",  0.041),
+        ("L1_4p5_HLT_4p0",  0.030)
     ]
     summary(filename,triggers=triggers,blind=True)
