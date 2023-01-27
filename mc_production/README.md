@@ -9,7 +9,7 @@ cmsenv
 git cms-init
 git cms-addpkg Configuration/Generator # required for step0
 git clone git@github.com:DiElectronX/GENfragments.git Configuration/GENfragments # required for step0
-git cms-merge-topic bainbrid:EGHLTCustomisation_1230pre6 # required for step3
+git cms-merge-topic bainbrid:EGHLTCustomisation_1230pre6 # required for step2 and step3
 scram b -j8
 voms-proxy-init --voms cms -valid 192:00
 ```
