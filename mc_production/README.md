@@ -10,6 +10,7 @@ git cms-init
 git cms-addpkg Configuration/Generator # required for step0
 git clone git@github.com:DiElectronX/GENfragments.git Configuration/GENfragments # required for step0
 git cms-merge-topic bainbrid:EGHLTCustomisation_1230pre6 # required for step2 and step3
+git clone ssh://git@gitlab.cern.ch:7999/sharper/HLTAnalyserPy.git Analysis/HLTAnalyserPy # required for step4
 scram b -j8
 voms-proxy-init --voms cms -valid 192:00
 ```
@@ -47,3 +48,14 @@ cmsRun step2_cfg.py >& step2.log &
 hltGetConfiguration /users/sharper/2022/egamma/EgOpen1240FrozenV1p2 --globaltag 124X_mcRun3_2022_realistic_v12 --mc --unprescale --output minimal --max-events -1 --eras Run3 --customise HLTrigger/Configuration/customizeHLTforEGamma.customiseEGammaMenuBParkStep3,Configuration/DataProcessing/Utils.addMonitoring --input file:step2.root > step3_cfg.py
 cmsRun step3_cfg.py >& step3.log &
 ```
+
+### step4: produce ntuples
+
+```
+cd $CMSSW_BASE/src
+git clone ssh://git@gitlab.cern.ch:7999/sharper/HLTAnalyserPy.git Analysis/HLTAnalyserPy
+scram b -j8
+python3 $CMSAnalysis/HLTAnalyserPy/test/makeRun3Ntup.py -o ntuple.root output.root
+```
+
+
