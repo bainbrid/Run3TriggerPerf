@@ -2,29 +2,35 @@ import json
 import math
 import numpy as np
 
-###############
-# Configurables
-###############
+################################################################################
+# Configuration
+################################################################################
 
 # Misc
 verbosity = 2
 
+# Build the menu
+optimised_menu       = 1
+intermediate_columns = 0
+
 # LHC parameters
-bunches = 2450    # This is configurable (to reflect LHC operations)
-full_orbit = 2450 # This is "fixed"
+bunches       = 2450    # This is configurable (to reflect LHC operations)
+full_orbit    = 2450 # This is "fixed"
+fill_duration = 12. # hrs
+levelling_time = 6. # hrs
 
 # CMS trigger params and funcs
-l1_max_rate = 110.
+l1_max_rate  = 110.
 l1_menu_rate = 93.
+allocation   = 2.9 # Di-ele allocation of L1 rate @ 2E34
 l1_used = lambda pu : l1_menu_rate * (pu/60.) * (bunches/full_orbit) # Used L1 rate
-l1_free = lambda pu : max(2., l1_max_rate - l1_used(pu))             # Free L1 rate
+l1_free = lambda pu : max(allocation, l1_max_rate - l1_used(pu))     # Free L1 rate
 
-enable_prescale = True
+# delta used by pu_best search (and corresponding delta L1 rate)
+delta_pu = 0.01
+delta_l1 = l1_used(delta_pu)
 
-############################
 # TSG prescale column schema
-############################
-
 # index 0      = emergency
 # indices 1-4  = 2p4E34 --> 2p1E34
 # index 5      = 2p0E34
@@ -35,16 +41,7 @@ length         = len(column_indices)
 column_labels  = [(20-x)/10 for x in range(0,length)]
 pu_values      = [60-x*3 for x in range(0,length)]
 
-if verbosity>1:
-    print("length:        ",length)
-    print("column_indices:",column_indices)
-    print("column_labels: ",column_labels)
-    print("pu_values:     ",pu_values)
-
-##################
-# Di-electron menu
-##################
-
+# Di-electron trigger menu
 l1_pts  = [11.0, 10.5, 9.0, 8.5, 8.0, 7.5, 7.0, 7.0, 6.5, 6.0, 6.0, 5.5, 5.5, 5.0, 4.5]
 hlt_pts = [ 6.5,  6.5, 6.0, 5.5, 5.0, 5.0, 5.0, 5.0, 4.5, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0]
 effs    = [0.03, 0.04, 0.09, 0.12, 0.15, 0.22, 0.24, 0.24, 0.30, 0.39, 0.39, 0.46, 0.46, 0.52, 0.55] # x1E34
@@ -53,6 +50,10 @@ if verbosity>1:
     print("l1_pts: ",l1_pts)
     print("hlt_pts:",hlt_pts)
     print("effs:   ",effs)
+
+################################################################################
+# Useful functions
+################################################################################
 
 # Parameterisation of L1 rate / bx curves from 2023 data
 ratebx_funcs = [
@@ -73,8 +74,13 @@ ratebx_funcs = [
     lambda pu : 80150340 + (0.140223 - 80150340)/(1 + (pu/ 28891)**2.085), #  4.5
     ]
 
-def pu_enable(ratebx,prescale=1.0):
-    pu_vector   = np.arange(pu_values[0], pu_values[-1], -0.1)
+# Solve simultaneous equations
+# 1) Free rate as a function of PU
+# 2) L1 di-ele rate (possibly prescaled) as a function of PU
+# 3) Solve for free rate == L1 di-ele rate, return PU value
+def pu_best(ratebx,prescale=1.0):
+    delta_pu = 0.01
+    pu_vector   = np.arange(pu_values[0], pu_values[-1], -1.*delta_pu)
     free_vector = [ l1_free(pu) for pu in pu_vector ]
     rate_vector = [ ratebx(pu)*bunches/1000./prescale for pu in pu_vector ]
     diff_vector = [ abs(rate-free) for free,rate in zip(free_vector,rate_vector) ]
@@ -90,132 +96,257 @@ def pu_enable(ratebx,prescale=1.0):
         print("pu",pu)
     return pu
 
-###############
-# Print summary
-###############
+# Elapsed time to reach PU value assuming the given luminosity profile
+# 1) Lumi-levelling for "levelling_time" [hours]
+# 2) Burn off accordibng to parameterisation
+# 3) Max "fill_duration" [hours]
+def elapsed(pu):
+    burn_off = -6.579879 + (17.99803 - -6.579879)/(1 + (pu/41.10469)**2.664125)
+    if pu > 59.9 : return 0.
+    else: return min(fill_duration,levelling_time + burn_off)
 
-def print_info(): 
-    print("# of columns: ",length)
-    print("Bunches:      ",bunches)
-    print("Max L1 rate:  ",l1_max_rate)
-    print("L1 menu rate: ",l1_menu_rate)
+# Returns instantaneous luminosity as a function of PU (and # bunches)
+def Linst(pu):
+    return 2.e-5 * (pu/60.) * (bunches/full_orbit) # Hz/fb
 
-def print_header():
-    print("   ".join(["Index",
-                      " Label",
-                      "  PU",
-                      "L1 pT",
-                      "HLT pT",
-                      " Used",
-                      " Free",
-                      "Rate/BX",
-                      "Rate",
-                      "  PU",
-                      "Rate/BX",
-                      "  PS",
-                      "Rate",
-                      "  Eff",
-                      "Eff/PS",
-                      "Gain",
-                          ]))
-
-def print_row(idx,
-              index,
-              label,
-              pu,
-              l1_pt,
-              hlt_pt,
-              ratebx,
-              eff):
-
-    pu_this     = pu_enable(ratebx)
-    ratebx_this = ratebx(pu_this)
-    rate_this   = ratebx(pu_this)*bunches/1000.
-    
-    #enable_prescale=False
-    if enable_prescale and idx>0:
-        idx_last    = idx-1
-        eff_last   = effs[idx_last]
-        eff_new     = eff_last + (eff - eff_last)/2.
-        prescale    = eff / eff_new
-        pu_last     = pu_enable(ratebx_funcs[idx_last])
-        pu_diff     = pu_last - pu_this
-        pu_new      = pu_enable(ratebx,prescale)# pu_this + pu_diff/2.
-        ratebx_last = ratebx_funcs[idx_last](pu_last)
-        rate_last   = ratebx_funcs[idx_last](pu_last)*bunches/1000.
-        rate_new    = ratebx(pu_new)*bunches/1000.
-        #print("eff",eff)
-        #print("eff_last",eff_last)
-        #print("eff_mid",eff_last + (eff - eff_last)/2.)
-        #print("pu_last",pu_last)
-        #print("pu_this",pu_this)
-        #print("pu_diff",pu_diff)
-        #print("pu_new",pu_new)
-        #print("ratebx_last",ratebx_last)
-        #print("rate_last",rate_last)
-        #print("rate_new",rate_new)
-        #print("prescale",prescale)
-        if pu_diff>0.:
-            print(f'     ',end='')
-            print(f'         ',end='')
-            print(f'       ',end='')
-            print(f' | {l1_pt:5.1f}',end='')
-            print(f'   {hlt_pt:6.1f}',end='')
-            print(f' | {l1_used(pu_new):5.1f}',end='')
-            print(f'   {l1_free(pu_new):5.1f}',end='')
-            print(f' | {ratebx(pu_new):7.1f}',end='')
-            print(f'   {ratebx(pu_new)*bunches/1000.:4.1f}',end='')
-            print(f' | {pu_new:4.1f}',end='')
-            print(f'   {ratebx(pu_new):7.1f}',end='')
-            print(f'   {prescale:4.2f}',end='')
-            print(f'   {ratebx(pu_new)*bunches/1000./prescale:4.1f}',end='')
-            print(f' | {eff:5.3f}',end='')
-            print(f'   {eff_new:6.3f}',end='')
-            print(f'   {eff_new/eff_last:4.2f}',end='')
-            print()
-
-    print(f'{index:5.0f}',end='')
-    print(f'   {label:6s}',end='')
-    print(f'   {pu:4.1f}',end='')
-    print(f' | {l1_pt:5.1f}',end='')
-    print(f'   {hlt_pt:6.1f}',end='')
-    print(f' | {l1_used(pu):5.1f}',end='')
-    print(f'   {l1_free(pu):5.1f}',end='')
-    print(f' | {ratebx(pu):7.1f}',end='')
-    print(f'   {ratebx(pu)*bunches/1000.:4.1f}',end='')
-    print(f' | {pu_this:4.1f}',end='')
-    print(f'   {ratebx_this:7.1f}',end='')
-    print(f'   1.00',end='')
-    print(f'   {rate_this:4.1f}',end='')
-    print(f' | {eff:5.3f}',end='')
-    print(f'   {eff:6.3f}',end='')
-    print()
-
-    return pu_this
-
+# Returns prescale column "label" (e.g. 2p0E34)
 def label(linst):
     return str(f"{linst:.1f}").replace(".","p")+"E34"
+
+################################################################################
+# Build prescale table
+################################################################################
+
+# Determine parameter values for a given prescale column
+# Return as a dict to add to the "prescale table"
+def prescale_column(idx,
+                    index,
+                    label,
+                    pu,
+                    l1_pt,
+                    hlt_pt,
+                    ratebx,
+                    eff,
+                    intermediate=False):
+
+    if intermediate==False: # Default prescale columns
+        prescale = 1.
+        if optimised_menu: pu = pu_best(ratebx,prescale)
+        return {
+            "intermediate":intermediate,
+            "index":index,
+            "label":label,
+            "pu":pu,
+            "l1_pt":l1_pt,
+            "hlt_pt":hlt_pt,
+            "l1_used":l1_used(pu),
+            "l1_free":l1_free(pu),
+            "ratebx":ratebx(pu),
+            "prescale":prescale, # unit prescale for nominal triggers
+            "eff":eff,
+            "eff_ps":eff/prescale,
+            "elapsed":min(fill_duration,elapsed(pu)),
+        }
+    else: # Intermediate prescale columns
+        idx_prev = idx-1 if idx>0 else 0
+        idx_next = idx+1 if idx<length-1 else length-1
+        eff_prev = effs[idx_prev]                      # previous eff (lower)
+        eff_this = eff                                 # this eff (higher)
+        eff_next = effs[idx_next]                      # next eff (even higher)
+        eff_mid  = eff_prev + (eff_this - eff_prev)/2. # determine mid-point eff between "prev" and "this"
+        prescale = eff_this/eff_mid                    # determine rate prescale to give mid-point efficiency
+        pu_prev = pu_values[idx_prev]
+        pu = pu_best(ratebx,prescale) # always done (not just for optimised menu)
+        return {
+            "intermediate":intermediate,
+            "index":index,
+            "label":label,
+            "pu":pu,
+            "l1_pt":l1_pt,
+            "hlt_pt":hlt_pt,
+            "l1_used":l1_used(pu),
+            "l1_free":l1_free(pu),
+            "ratebx":ratebx(pu),
+            "prescale":prescale,
+            "eff":eff_this,
+            "eff_ps":eff_this/prescale,
+            "elapsed":min(fill_duration,elapsed(pu)),
+        }
+
+# Build prescale table
+# 1) Populate prescale table with nominal columns
+# 2) If required, populate prescale table with intermediate columns
+def build_prescale_table():
+    vdict = []
+    for idx in range(length):
+        if intermediate_columns and idx>0: # Insert intermediate columns
+            dct = prescale_column(
+                idx,
+                column_indices[idx],
+                label(column_labels[idx]),
+                pu_values[idx],
+                l1_pts[idx],
+                hlt_pts[idx],
+                ratebx_funcs[idx],
+                effs[idx],
+                intermediate=True,
+            )
+            vdict.append(dct)
+        # Add nominal columns
+        dct = prescale_column(
+            idx,
+            column_indices[idx],
+            label(column_labels[idx]),
+            pu_values[idx],
+            l1_pts[idx],
+            hlt_pts[idx],
+            ratebx_funcs[idx],
+            effs[idx],
+            intermediate=False,
+        )
+        vdict.append(dct)
+    return vdict
+
+################################################################################
+# Print summary
+################################################################################
+
+def print_info(ncol): 
+    print("Optimised menu? ","Yes" if optimised_menu==True else "No")
+    print("Mid-steps?      ","Yes" if intermediate_columns==True else "No")
+    print("# of columns:   ",ncol)
+    print("Bunches:        ",bunches)
+    print("Max L1 rate:    ",l1_max_rate)
+    print("L1 menu rate:   ",l1_menu_rate)
+    print("Fill [hrs]:     ",fill_duration)
+    print("Levelling [hrs]:",levelling_time)
+
+def print_header():
+    print("".join([""+"Index",
+                   " "+" Label",
+                   " "+"  PU",
+                   " | "+"L1 pT",
+                   " "+"HLT pT",
+                   " | "+" Menu",
+                   " "+" Free",
+                   " | "+"Rate/BX",
+                   " "+"Rate",
+                   #" "+"  PU",
+                   #" "+"Rate/BX",
+                   " "+"   PS",
+                   " "+"Rate/PS",
+                   " "+"Unused",
+                   " | "+"  Eff",
+                   " "+"Eff/PS",
+                   " "+"Gain",
+                   " | "+" Time",
+                   " "+"dTime",
+                   " "+"dLumi",
+                   #" "+" Time",
+                   " "+"Cands",
+                   " "+"Enabled?",
+     ]))
+
+def print_row(idx,vdict):
+
+    # Extract variables
+    dct = vdict[idx]
+    intermediate = dct.get("intermediate",None)
+    index = dct.get("index",None)
+    label = dct.get("label",None)
+    pu = dct.get("pu",None)
+    l1_pt = dct.get("l1_pt",None)
+    hlt_pt = dct.get("hlt_pt",None)
+    l1_used = dct.get("l1_used",None)
+    l1_free = dct.get("l1_free",None)
+    ratebx = dct.get("ratebx",None)
+    rate = ratebx*bunches/1000. if ratebx is not None and ratebx > 0. else None
+    prescale = dct.get("prescale",None)
+    eff = dct.get("eff",None)
+    eff_ps = dct.get("eff_ps",None)
+    elapsed = dct.get("elapsed",None)
     
+    # Previous and next indices
+    idx_prev = idx-1 if idx>0 else 0
+    idx_next = idx+1 if idx<len(vdict)-1 else len(vdict)-1
+
+    # Previous and next dict entries
+    dct_prev = vdict[idx_prev] if idx_prev != idx else {}
+    dct_next = vdict[idx_next] if idx_next != idx else {}
+
+    # Efficiency gain
+    eff_prev = dct_prev.get("eff_ps",None)
+    eff_gain = eff_ps/eff_prev if eff_prev is not None else 1.
+    #eff_ps   = eff/prescale
+    
+    # Time elapsed and delta
+    elapsed_prev = dct_prev.get("elapsed",None)
+    elapsed_next = dct_next.get("elapsed",None)
+    delta_time   = elapsed_next - elapsed if elapsed_next is not None else 0.
+    enabled      = "YES" if delta_time > 0. else ""
+
+    # Integrated luminosity
+    lumi = Linst(pu) * delta_time * 3600. # /fb
+    cands = lumi * 4.694e11 * 0.4 * 4.5e-7 * 2 * eff_ps * 1.e-4
+    #print(lumi,eff_ps,cands)
+
+    # Unused L1 rate (ensure +ve given delta_pu precision)
+    unused = l1_free - rate/prescale
+    if abs(unused) < delta_l1 : unused = 0.
+    
+    if intermediate==False:
+        print(f'{index:5.0f}',end='')
+        print(f' {label:6s}',end='')
+    else:
+        print(" "*5,end='')
+        print(" "*7,end='')
+    print(f' {pu:4.1f}',end='')
+    print(f' | {l1_pt:5.1f}',end='')
+    print(f' {hlt_pt:6.1f}',end='')
+    print(f' | {l1_used:5.1f}',end='')
+    print(f' {l1_free:5.1f}',end='')
+    print(f' | {ratebx:7.1f}',end='')
+    print(f' {rate:4.1f}',end='')
+    print(f' {prescale:5.2f}',end='')
+    print(f' {rate/prescale:7.1f}',end='')
+    print(f' {unused:6.2f}',end='')
+    print(f' | {eff:5.3f}',end='')
+    print(f' {eff_ps:6.3f}',end='')
+    print(f' {eff_gain:4.2f}',end='')
+    print(f' | {elapsed:5.2f}',end='')
+    print(f' {delta_time:5.2f}',end='')
+    print(f' {lumi:5.2f}',end='')
+    print(f' {cands:5.2f}',end='')
+    print(f' {enabled:8s}',end='')
+    print()
+
+    dct["eff_gain"] = eff_gain
+    dct["dtime"] = delta_time
+    dct["lumi"] = lumi
+    dct["cands"] = cands
+    return dct
+
 def print_table():
+    total_elapsed = 0.
+    total_lumi = 0.
+    total_cands = 0.
+    vdict = build_prescale_table()
     print("#"*80)
-    print_info()
+    print_info(len(vdict))
     print()
     print_header()
-    for idx in range(length):
-        print_row(idx,
-                  column_indices[idx],
-                  label(column_labels[idx]),
-                  pu_values[idx],
-                  l1_pts[idx],
-                  hlt_pts[idx],
-                  ratebx_funcs[idx],
-                  effs[idx])
+    for idx in range(len(vdict)):
+        dct = print_row(idx,vdict)
+        total_elapsed += dct.get("dtime",None)
+        total_lumi += dct.get("lumi",None)
+        total_cands += dct.get("cands",None)
+    print(" "*110,f"{total_elapsed:5.2f}",f"{total_lumi:5.2f}",f"{total_cands:5.2f}")
     print("#"*80)
     print()
 
-###########
+################################################################################
 # Execution
-###########
+################################################################################
 
 if __name__ == "__main__":
     print("Running menu.py...")
