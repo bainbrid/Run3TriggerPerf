@@ -14,17 +14,19 @@ optimised_menu       = 1
 intermediate_columns = 0
 
 # LHC parameters
-bunches       = 2450    # This is configurable (to reflect LHC operations)
-full_orbit    = 2450 # This is "fixed"
-fill_duration = 12. # hrs
-levelling_time = 6. # hrs
+bunches        = 2450  # This is configurable (to reflect LHC operations)
+full_orbit     = 2450  # This is "fixed"
+fill_duration  =   12. # hrs
+levelling_time =    6. # hrs
+peak_pu        =   60.
 
 # CMS trigger params and funcs
 l1_max_rate  = 110.
 l1_menu_rate = 93.
 allocation   = 2.9 # Di-ele allocation of L1 rate @ 2E34
-l1_used = lambda pu : l1_menu_rate * (pu/60.) * (bunches/full_orbit) # Used L1 rate
-l1_free = lambda pu : max(allocation, l1_max_rate - l1_used(pu))     # Free L1 rate
+l1_used = lambda pu : l1_menu_rate * (pu/peak_pu) * (bunches/full_orbit) # Used L1 rate
+l1_free = lambda pu : max(allocation, l1_max_rate - l1_used(pu))         # Free L1 rate
+hlt_max_rate  = 300.
 
 # delta used by pu_best search (and corresponding delta L1 rate)
 delta_pu = 0.01
@@ -39,7 +41,7 @@ delta_l1 = l1_used(delta_pu)
 column_indices = [5] + list(range(7,21)) 
 length         = len(column_indices)
 column_labels  = [(20-x)/10 for x in range(0,length)]
-pu_values      = [60-x*3 for x in range(0,length)]
+pu_values      = [peak_pu-x*3 for x in range(0,length)]
 
 # Di-electron trigger menu
 l1_pts  = [11.0, 10.5, 9.0, 8.5, 8.0, 7.5, 7.0, 7.0, 6.5, 6.0, 6.0, 5.5, 5.5, 5.0, 4.5]
@@ -56,43 +58,61 @@ if verbosity>1:
 ################################################################################
 
 # Parameterisation of L1 rate / bx curves from 2023 data
-ratebx_funcs = [
-    lambda pu :   289752 + (0.000306 -   289752)/(1 + (pu/282807)**1.509), # 11.0
-    lambda pu :   523954 + (0.001036 -   523954)/(1 + (pu/206369)**1.583), # 10.5
-    lambda pu :  1309084 + (0.010722 -  1309084)/(1 + (pu/115797)**1.669), #  9.0
-    lambda pu :  2202995 + (0.003296 -  2202995)/(1 + (pu/124520)**1.680), #  8.5    
-    lambda pu :  3506648 + (0.095218 -  3506648)/(1 + (pu/103156)**1.747), #  8.0
-    lambda pu :  1781997 + (0.000684 -  1781997)/(1 + (pu/ 65271)**1.696), #  7.5
-    lambda pu :  7912245 + (0.009392 -  7912245)/(1 + (pu/ 78876)**1.801), #  7.0
-    lambda pu :  7912245 + (0.009392 -  7912245)/(1 + (pu/ 78876)**1.801), #  7.0
-    lambda pu : 13023000 + (0.127634 - 13023000)/(1 + (pu/ 73575)**1.824), #  6.5 
-    lambda pu : 21829290 + (0.035174 - 21829290)/(1 + (pu/ 61131)**1.869), #  6.0
-    lambda pu : 21829290 + (0.035174 - 21829290)/(1 + (pu/ 61131)**1.869), #  6.0
-    lambda pu : 20608440 + (0.302950 - 20608440)/(1 + (pu/ 47833)**1.877), #  5.5
-    lambda pu : 20608440 + (0.302950 - 20608440)/(1 + (pu/ 47833)**1.877), #  5.5
-    lambda pu : 48971960 + (0.604148 - 48971960)/(1 + (pu/ 39269)**1.966), #  5.0
-    lambda pu : 80150340 + (0.140223 - 80150340)/(1 + (pu/ 28891)**2.085), #  4.5
+l1_ratebx_funcs = [
+    lambda pu :   289752 + (0.000306 -   289752)/(1 + (pu/282807)**1.509), # 11.0,6.5
+    lambda pu :   523954 + (0.001036 -   523954)/(1 + (pu/206369)**1.583), # 10.5,6.5
+    lambda pu :  1309084 + (0.010722 -  1309084)/(1 + (pu/115797)**1.669), #  9.0,6.0
+    lambda pu :  2202995 + (0.003296 -  2202995)/(1 + (pu/124520)**1.680), #  8.5,5.5   
+    lambda pu :  3506648 + (0.095218 -  3506648)/(1 + (pu/103156)**1.747), #  8.0,5.0
+    lambda pu :  1781997 + (0.000684 -  1781997)/(1 + (pu/ 65271)**1.696), #  7.5,5.0
+    lambda pu :  7912245 + (0.009392 -  7912245)/(1 + (pu/ 78876)**1.801), #  7.0,5.0
+    lambda pu :  7912245 + (0.009392 -  7912245)/(1 + (pu/ 78876)**1.801), #  7.0,5.0
+    lambda pu : 13023000 + (0.127634 - 13023000)/(1 + (pu/ 73575)**1.824), #  6.5,4.5
+    lambda pu : 21829290 + (0.035174 - 21829290)/(1 + (pu/ 61131)**1.869), #  6.0,4.0
+    lambda pu : 21829290 + (0.035174 - 21829290)/(1 + (pu/ 61131)**1.869), #  6.0,4.0
+    lambda pu : 20608440 + (0.302950 - 20608440)/(1 + (pu/ 47833)**1.877), #  5.5,4.0
+    lambda pu : 20608440 + (0.302950 - 20608440)/(1 + (pu/ 47833)**1.877), #  5.5,4.0
+    lambda pu : 48971960 + (0.604148 - 48971960)/(1 + (pu/ 39269)**1.966), #  5.0,4.0
+    lambda pu : 80150340 + (0.140223 - 80150340)/(1 + (pu/ 28891)**2.085), #  4.5,4.0
+    ]
+
+hlt_ratebx_funcs = [
+    lambda pu : -1.,                                                                 # 11.0,6.5
+    lambda pu : -1.,                                                                 # 10.5,6.5
+    lambda pu : -1.,                                                                 #  9.0,6.0
+    lambda pu : 1856.952 + (0.000001427441 - 1856.952)/(1 + (pu/537.7534)^4.737433), #  8.5,5.5
+    lambda pu : 6695.862 + (0.000004460516 - 6695.862)/(1 + (pu/861.0147)^4.236512), #  8.0,5.0
+    lambda pu : 8753.011 + (0.000009374157 - 8753.011)/(1 + (pu/1341.164)^3.589976), #  7.5,5.0
+    lambda pu : 1.820315 + (-5.022876e-8 - 0.820315)/(1 + (pu/86.44273)^3.770649),   #  7.0,5.0
+    lambda pu : 1.820315 + (-5.022876e-8 - 0.820315)/(1 + (pu/86.44273)^3.770649),   #  7.0,5.0
+    lambda pu : 11523.24 + (0.000008690305 - 11523.24)/(1 + (pu/2712.352)^2.832322), #  6.5,4.5
+    lambda pu : -1.,                                                                 #  6.0,4.0
+    lambda pu : -1.,                                                                 #  6.0,4.0
+    lambda pu : -1.,                                                                 #  5.5,4.0
+    lambda pu : -1.,                                                                 #  5.5,4.0
+    lambda pu : -1.,                                                                 #  5.0,4.0
+    lambda pu : -1.,                                                                 #  4.5,4.0
     ]
 
 # Solve simultaneous equations
 # 1) Free rate as a function of PU
 # 2) L1 di-ele rate (possibly prescaled) as a function of PU
 # 3) Solve for free rate == L1 di-ele rate, return PU value
-def pu_best(ratebx,prescale=1.0):
+def pu_best(l1_ratebx,l1_prescale=1.0):
     delta_pu = 0.01
     pu_vector   = np.arange(pu_values[0], pu_values[-1], -1.*delta_pu)
-    free_vector = [ l1_free(pu) for pu in pu_vector ]
-    rate_vector = [ ratebx(pu)*bunches/1000./prescale for pu in pu_vector ]
-    diff_vector = [ abs(rate-free) for free,rate in zip(free_vector,rate_vector) ]
-    idx = np.argmin(diff_vector)
+    l1_free_vector = [ l1_free(pu) for pu in pu_vector ]
+    l1_rate_vector = [ l1_ratebx(pu)*bunches/1000./l1_prescale for pu in pu_vector ]
+    l1_diff_vector = [ abs(l1_free-l1_rate) for l1_free,l1_rate in zip(l1_free_vector,l1_rate_vector) ]
+    idx = np.argmin(l1_diff_vector)
     pu = pu_vector[idx]
     if verbosity>2:
         print("pu_vector",pu_vector[:10])
-        print("free_vector",free_vector[:10])
-        print("rate_vector",rate_vector[:10]) 
-        print("diff_vector",diff_vector[:10]) 
+        print("l1_free_vector",l1_free_vector[:10])
+        print("l1_rate_vector",l1_rate_vector[:10]) 
+        print("l1_diff_vector",l1_diff_vector[:10]) 
         print("argmin",idx)
-        print("min diff",diff_vector[idx])
+        print("min diff",l1_diff_vector[idx])
         print("pu",pu)
     return pu
 
@@ -107,7 +127,7 @@ def elapsed(pu):
 
 # Returns instantaneous luminosity as a function of PU (and # bunches)
 def Linst(pu):
-    return 2.e-5 * (pu/60.) * (bunches/full_orbit) # Hz/fb
+    return 2.e-5 * (pu/peak_pu) * (bunches/full_orbit) # Hz/fb
 
 # Returns prescale column "label" (e.g. 2p0E34)
 def label(linst):
@@ -125,13 +145,13 @@ def prescale_column(idx,
                     pu,
                     l1_pt,
                     hlt_pt,
-                    ratebx,
+                    l1_ratebx,
                     eff,
                     intermediate=False):
 
     if intermediate==False: # Default prescale columns
-        prescale = 1.
-        if optimised_menu: pu = pu_best(ratebx,prescale)
+        l1_prescale = 1.
+        if optimised_menu: pu = pu_best(l1_ratebx,l1_prescale)
         return {
             "intermediate":intermediate,
             "index":index,
@@ -141,10 +161,10 @@ def prescale_column(idx,
             "hlt_pt":hlt_pt,
             "l1_used":l1_used(pu),
             "l1_free":l1_free(pu),
-            "ratebx":ratebx(pu),
-            "prescale":prescale, # unit prescale for nominal triggers
+            "l1_ratebx":l1_ratebx(pu),
+            "l1_prescale":l1_prescale, # unit prescale for nominal triggers
             "eff":eff,
-            "eff_ps":eff/prescale,
+            "eff_ps":eff/l1_prescale,
             "elapsed":min(fill_duration,elapsed(pu)),
         }
     else: # Intermediate prescale columns
@@ -154,9 +174,9 @@ def prescale_column(idx,
         eff_this = eff                                 # this eff (higher)
         eff_next = effs[idx_next]                      # next eff (even higher)
         eff_mid  = eff_prev + (eff_this - eff_prev)/2. # determine mid-point eff between "prev" and "this"
-        prescale = eff_this/eff_mid                    # determine rate prescale to give mid-point efficiency
+        l1_prescale = eff_this/eff_mid                 # determine rate prescale to give mid-point efficiency
         pu_prev = pu_values[idx_prev]
-        pu = pu_best(ratebx,prescale) # always done (not just for optimised menu)
+        pu = pu_best(l1_ratebx,l1_prescale) # always done (not just for optimised menu)
         return {
             "intermediate":intermediate,
             "index":index,
@@ -166,10 +186,10 @@ def prescale_column(idx,
             "hlt_pt":hlt_pt,
             "l1_used":l1_used(pu),
             "l1_free":l1_free(pu),
-            "ratebx":ratebx(pu),
-            "prescale":prescale,
+            "l1_ratebx":l1_ratebx(pu),
+            "l1_prescale":l1_prescale,
             "eff":eff_this,
-            "eff_ps":eff_this/prescale,
+            "eff_ps":eff_this/l1_prescale,
             "elapsed":min(fill_duration,elapsed(pu)),
         }
 
@@ -187,7 +207,7 @@ def build_prescale_table():
                 pu_values[idx],
                 l1_pts[idx],
                 hlt_pts[idx],
-                ratebx_funcs[idx],
+                l1_ratebx_funcs[idx],
                 effs[idx],
                 intermediate=True,
             )
@@ -200,7 +220,7 @@ def build_prescale_table():
             pu_values[idx],
             l1_pts[idx],
             hlt_pts[idx],
-            ratebx_funcs[idx],
+            l1_ratebx_funcs[idx],
             effs[idx],
             intermediate=False,
         )
@@ -212,14 +232,15 @@ def build_prescale_table():
 ################################################################################
 
 def print_info(ncol): 
-    print("Optimised menu? ","Yes" if optimised_menu==True else "No")
-    print("Mid-steps?      ","Yes" if intermediate_columns==True else "No")
-    print("# of columns:   ",ncol)
-    print("Bunches:        ",bunches)
-    print("Max L1 rate:    ",l1_max_rate)
-    print("L1 menu rate:   ",l1_menu_rate)
-    print("Fill [hrs]:     ",fill_duration)
-    print("Levelling [hrs]:",levelling_time)
+    print("Optimised menu?   ","Yes" if optimised_menu==True else "No")
+    print("Mid-steps?        ","Yes" if intermediate_columns==True else "No")
+    print("# of columns:     ",ncol)
+    print("Bunches:          ",bunches)
+    print("L1 menu rate:     ",l1_menu_rate)
+    print("Max L1 rate [kHz]:",l1_max_rate)
+    print("Max HLT rate [Hz]:",hlt_max_rate)
+    print("Fill [hrs]:       ",fill_duration)
+    print("Levelling [hrs]:  ",levelling_time)
 
 def print_header():
     print("".join([""+"Index",
@@ -233,11 +254,11 @@ def print_header():
                    " "+"Rate",
                    #" "+"  PU",
                    #" "+"Rate/BX",
-                   " "+"   PS",
-                   " "+"Rate/PS",
+                   " "+"   PS" if intermediate_columns == True else "",
+                   " "+"Rate/PS" if intermediate_columns == True else "",
                    " "+"Unused",
                    " | "+"  Eff",
-                   " "+"Eff/PS",
+                   " "+"Eff/PS"  if intermediate_columns == True else "",
                    " "+"Gain",
                    " | "+" Time",
                    " "+"dTime",
@@ -259,9 +280,9 @@ def print_row(idx,vdict):
     hlt_pt = dct.get("hlt_pt",None)
     l1_used = dct.get("l1_used",None)
     l1_free = dct.get("l1_free",None)
-    ratebx = dct.get("ratebx",None)
-    rate = ratebx*bunches/1000. if ratebx is not None and ratebx > 0. else None
-    prescale = dct.get("prescale",None)
+    l1_ratebx = dct.get("l1_ratebx",None)
+    l1_rate = l1_ratebx*bunches/1000. if l1_ratebx is not None and l1_ratebx > 0. else None
+    l1_prescale = dct.get("l1_prescale",None)
     eff = dct.get("eff",None)
     eff_ps = dct.get("eff_ps",None)
     elapsed = dct.get("elapsed",None)
@@ -277,7 +298,7 @@ def print_row(idx,vdict):
     # Efficiency gain
     eff_prev = dct_prev.get("eff_ps",None)
     eff_gain = eff_ps/eff_prev if eff_prev is not None else 1.
-    #eff_ps   = eff/prescale
+    #eff_ps   = eff/l1_prescale
     
     # Time elapsed and delta
     elapsed_prev = dct_prev.get("elapsed",None)
@@ -291,7 +312,7 @@ def print_row(idx,vdict):
     #print(lumi,eff_ps,cands)
 
     # Unused L1 rate (ensure +ve given delta_pu precision)
-    unused = l1_free - rate/prescale
+    unused = l1_free - l1_rate/l1_prescale
     if abs(unused) < delta_l1 : unused = 0.
     
     if intermediate==False:
@@ -305,13 +326,13 @@ def print_row(idx,vdict):
     print(f' {hlt_pt:6.1f}',end='')
     print(f' | {l1_used:5.1f}',end='')
     print(f' {l1_free:5.1f}',end='')
-    print(f' | {ratebx:7.1f}',end='')
-    print(f' {rate:4.1f}',end='')
-    print(f' {prescale:5.2f}',end='')
-    print(f' {rate/prescale:7.1f}',end='')
+    print(f' | {l1_ratebx:7.1f}',end='')
+    print(f' {l1_rate:4.1f}',end='')
+    print(f' {l1_prescale:5.2f}' if intermediate_columns == True else '',end='')
+    print(f' {l1_rate/l1_prescale:7.1f}' if intermediate_columns == True else '',end='')
     print(f' {unused:6.2f}',end='')
     print(f' | {eff:5.3f}',end='')
-    print(f' {eff_ps:6.3f}',end='')
+    print(f' {eff_ps:6.3f}' if intermediate_columns == True else '',end='')
     print(f' {eff_gain:4.2f}',end='')
     print(f' | {elapsed:5.2f}',end='')
     print(f' {delta_time:5.2f}',end='')
@@ -340,7 +361,8 @@ def print_table():
         total_elapsed += dct.get("dtime",None)
         total_lumi += dct.get("lumi",None)
         total_cands += dct.get("cands",None)
-    print(" "*110,f"{total_elapsed:5.2f}",f"{total_lumi:5.2f}",f"{total_cands:5.2f}")
+    print(" "*111 if intermediate_columns == True else " "*90,end='')
+    print(f"{total_elapsed:5.2f}",f"{total_lumi:5.2f}",f"{total_cands:5.2f}")
     print("#"*80)
     print()
 
