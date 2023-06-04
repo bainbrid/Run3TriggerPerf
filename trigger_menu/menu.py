@@ -14,10 +14,10 @@ optimised_menu       = 1
 intermediate_columns = 0
 
 # LHC parameters
-bunches        = 2450  # This is configurable (to reflect LHC operations)
+bunches        = 1800  # This is configurable (to reflect LHC operations)
 full_orbit     = 2450  # This is "fixed"
 fill_duration  =   12. # hrs
-levelling_time =    6. # hrs
+levelling_time =    0. # hrs
 peak_pu        =   60.
 
 # CMS trigger params and funcs
@@ -38,15 +38,15 @@ delta_l1 = l1_used(delta_pu)
 # index 5      = 2p0E34
 # index 6      = 2p0E34+ZeroBias+HLTPhysics
 # indices 7-20 = 1p9-E34 --> 0p6E34
-column_indices = [5] + list(range(7,21)) 
+column_indices = [5] + list(range(7,19))#21)) 
 length         = len(column_indices)
 column_labels  = [(20-x)/10 for x in range(0,length)]
 pu_values      = [peak_pu-x*3 for x in range(0,length)]
 
 # Di-electron trigger menu
-l1_pts  = [11.0, 10.5, 9.0, 8.5, 8.0, 7.5, 7.0, 7.0, 6.5, 6.0, 6.0, 5.5, 5.5, 5.0, 4.5]
-hlt_pts = [ 6.5,  6.5, 6.0, 5.5, 5.0, 5.0, 5.0, 5.0, 4.5, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0]
-effs    = [0.03, 0.04, 0.09, 0.12, 0.15, 0.22, 0.24, 0.24, 0.30, 0.39, 0.39, 0.46, 0.46, 0.52, 0.55] # x1E34
+l1_pts  = [11.0, 10.5, 9.0, 8.5, 8.0, 7.5, 7.0, 7.0, 6.5, 6.0, 6.0, 5.5, 5.5]#, 5.0, 4.5]
+hlt_pts = [ 6.5,  6.5, 6.0, 5.5, 5.0, 5.0, 5.0, 5.0, 4.5, 4.0, 4.0, 4.0, 4.0]#, 4.0, 4.0]
+effs    = [0.03, 0.04, 0.09, 0.12, 0.15, 0.22, 0.24, 0.24, 0.30, 0.39, 0.39, 0.46, 0.46]#, 0.52, 0.55] # x1E34
 
 if verbosity>1:
     print("l1_pts: ",l1_pts)
@@ -77,44 +77,58 @@ l1_ratebx_funcs = [
     ]
 
 hlt_ratebx_funcs = [
-    lambda pu : -1.,                                                                 # 11.0,6.5
-    lambda pu : -1.,                                                                 # 10.5,6.5
-    lambda pu : -1.,                                                                 #  9.0,6.0
-    lambda pu : 1856.952 + (0.000001427441 - 1856.952)/(1 + (pu/537.7534)^4.737433), #  8.5,5.5
-    lambda pu : 6695.862 + (0.000004460516 - 6695.862)/(1 + (pu/861.0147)^4.236512), #  8.0,5.0
-    lambda pu : 8753.011 + (0.000009374157 - 8753.011)/(1 + (pu/1341.164)^3.589976), #  7.5,5.0
-    lambda pu : 1.820315 + (-5.022876e-8 - 0.820315)/(1 + (pu/86.44273)^3.770649),   #  7.0,5.0
-    lambda pu : 1.820315 + (-5.022876e-8 - 0.820315)/(1 + (pu/86.44273)^3.770649),   #  7.0,5.0
-    lambda pu : 11523.24 + (0.000008690305 - 11523.24)/(1 + (pu/2712.352)^2.832322), #  6.5,4.5
-    lambda pu : -1.,                                                                 #  6.0,4.0
-    lambda pu : -1.,                                                                 #  6.0,4.0
-    lambda pu : -1.,                                                                 #  5.5,4.0
-    lambda pu : -1.,                                                                 #  5.5,4.0
-    lambda pu : -1.,                                                                 #  5.0,4.0
-    lambda pu : -1.,                                                                 #  4.5,4.0
+    lambda pu :0.,                                                                    # 11.0,6.5
+    lambda pu :0.,                                                                    # 10.5,6.5
+    lambda pu :0.,                                                                    #  9.0,6.0
+    lambda pu : 1856.952 + (0.000001427441 - 1856.952)/(1 + (pu/537.7534)**4.737433), #  8.5,5.5
+    lambda pu : 6695.862 + (0.000004460516 - 6695.862)/(1 + (pu/861.0147)**4.236512), #  8.0,5.0
+    lambda pu : 8753.011 + (0.000009374157 - 8753.011)/(1 + (pu/1341.164)**3.589976), #  7.5,5.0
+    lambda pu : 0.820315 + (-5.022876e-8 - 0.820315)/(1 + (pu/86.44273)**3.770649),   #  7.0,5.0
+    lambda pu : 0.820315 + (-5.022876e-8 - 0.820315)/(1 + (pu/86.44273)**3.770649),   #  7.0,5.0
+    lambda pu : 11523.24 + (0.000008690305 - 11523.24)/(1 + (pu/2712.352)**2.832322), #  6.5,4.5
+    lambda pu : 0.3552093 + (-1.379113e-7 - 0.3552093)/(1 + (pu/39.09098)**3.525065), #  6.0,4.0
+    lambda pu : 0.3552093 + (-1.379113e-7 - 0.3552093)/(1 + (pu/39.09098)**3.525065), #  6.0,4.0
+    lambda pu : 8446.93 + (0.000003146499 - 8446.93)/(1 + (pu/2033.536)**2.767513),   #  5.5,4.0
+    lambda pu : 8446.93 + (0.000003146499 - 8446.93)/(1 + (pu/2033.536)**2.767513),   #  5.5,4.0
+    lambda pu :0.,                                                                    #  5.0,4.0
+    lambda pu :0.,                                                                    #  4.5,4.0
     ]
 
 # Solve simultaneous equations
 # 1) Free rate as a function of PU
 # 2) L1 di-ele rate (possibly prescaled) as a function of PU
 # 3) Solve for free rate == L1 di-ele rate, return PU value
-def pu_best(l1_ratebx,l1_prescale=1.0):
+def pu_best(l1_ratebx,l1_prescale=1.0,hlt_ratebx=None):
     delta_pu = 0.01
     pu_vector   = np.arange(pu_values[0], pu_values[-1], -1.*delta_pu)
     l1_free_vector = [ l1_free(pu) for pu in pu_vector ]
     l1_rate_vector = [ l1_ratebx(pu)*bunches/1000./l1_prescale for pu in pu_vector ]
     l1_diff_vector = [ abs(l1_free-l1_rate) for l1_free,l1_rate in zip(l1_free_vector,l1_rate_vector) ]
-    idx = np.argmin(l1_diff_vector)
-    pu = pu_vector[idx]
+    l1_idx = np.argmin(l1_diff_vector)
+    l1_pu = pu_vector[l1_idx]
+    
+    hlt_rate_vector = [ hlt_ratebx(pu)*bunches for pu in pu_vector ]
+    hlt_diff_vector = [ max(hlt_max_rate-hlt_rate,0.) for hlt_rate in hlt_rate_vector ]
+    hlt_idx = len(hlt_diff_vector) - np.argmin(hlt_diff_vector[::-1]) # find last occurance of min value (zero), not the first ...
+    #print(pu_vector,hlt_rate_vector,hlt_diff_vector,hlt_idx,len(hlt_diff_vector))
+    hlt_pu = pu_vector[hlt_idx] if hlt_idx < len(pu_vector) else pu_values[0]
+
     if verbosity>2:
         print("pu_vector",pu_vector[:10])
         print("l1_free_vector",l1_free_vector[:10])
         print("l1_rate_vector",l1_rate_vector[:10]) 
         print("l1_diff_vector",l1_diff_vector[:10]) 
-        print("argmin",idx)
-        print("min diff",l1_diff_vector[idx])
-        print("pu",pu)
-    return pu
+        print("l1_argmin",l1_idx)
+        print("l1_min_diff",l1_diff_vector[l1_idx])
+        print("l1_pu",l1_pu)
+        print("hlt_argmin",hlt_idx)
+        print("hlt_pu",hlt_pu)
+
+    if hlt_pu<l1_pu: 
+        print("l1_argmin",l1_idx,"l1_pu",l1_pu,"hlt_argmin",hlt_idx,"hlt_pu",hlt_pu)
+    #return max(l1_pu,hlt_pu)
+    return min(l1_pu,hlt_pu)
+    #return l1_pu
 
 # Elapsed time to reach PU value assuming the given luminosity profile
 # 1) Lumi-levelling for "levelling_time" [hours]
@@ -146,12 +160,13 @@ def prescale_column(idx,
                     l1_pt,
                     hlt_pt,
                     l1_ratebx,
+                    hlt_ratebx,
                     eff,
                     intermediate=False):
 
     if intermediate==False: # Default prescale columns
         l1_prescale = 1.
-        if optimised_menu: pu = pu_best(l1_ratebx,l1_prescale)
+        if optimised_menu: pu = pu_best(l1_ratebx,l1_prescale,hlt_ratebx)
         return {
             "intermediate":intermediate,
             "index":index,
@@ -163,6 +178,7 @@ def prescale_column(idx,
             "l1_free":l1_free(pu),
             "l1_ratebx":l1_ratebx(pu),
             "l1_prescale":l1_prescale, # unit prescale for nominal triggers
+            "hlt_ratebx":hlt_ratebx(pu),
             "eff":eff,
             "eff_ps":eff/l1_prescale,
             "elapsed":min(fill_duration,elapsed(pu)),
@@ -188,6 +204,7 @@ def prescale_column(idx,
             "l1_free":l1_free(pu),
             "l1_ratebx":l1_ratebx(pu),
             "l1_prescale":l1_prescale,
+            "hlt_ratebx":hlt_ratebx(pu),
             "eff":eff_this,
             "eff_ps":eff_this/l1_prescale,
             "elapsed":min(fill_duration,elapsed(pu)),
@@ -208,6 +225,7 @@ def build_prescale_table():
                 l1_pts[idx],
                 hlt_pts[idx],
                 l1_ratebx_funcs[idx],
+                hlt_ratebx_funcs[idx],
                 effs[idx],
                 intermediate=True,
             )
@@ -221,6 +239,7 @@ def build_prescale_table():
             l1_pts[idx],
             hlt_pts[idx],
             l1_ratebx_funcs[idx],
+            hlt_ratebx_funcs[idx],
             effs[idx],
             intermediate=False,
         )
@@ -250,12 +269,15 @@ def print_header():
                    " "+"HLT pT",
                    " | "+" Menu",
                    " "+" Free",
-                   " | "+"Rate/BX",
+                   " | "+"  L1/BX",
                    " "+"Rate",
                    #" "+"  PU",
                    #" "+"Rate/BX",
                    " "+"   PS" if intermediate_columns == True else "",
                    " "+"Rate/PS" if intermediate_columns == True else "",
+                   " "+"Unused",
+                   " | "+" HLT/BX",
+                   " "+"  Rate",
                    " "+"Unused",
                    " | "+"  Eff",
                    " "+"Eff/PS"  if intermediate_columns == True else "",
@@ -283,6 +305,9 @@ def print_row(idx,vdict):
     l1_ratebx = dct.get("l1_ratebx",None)
     l1_rate = l1_ratebx*bunches/1000. if l1_ratebx is not None and l1_ratebx > 0. else None
     l1_prescale = dct.get("l1_prescale",None)
+    hlt_ratebx = dct.get("hlt_ratebx",None)
+    hlt_rate = hlt_ratebx*bunches if hlt_ratebx is not None and hlt_ratebx > 0. else 0.
+    hlt_unused = max(hlt_max_rate - hlt_rate, 0.)
     eff = dct.get("eff",None)
     eff_ps = dct.get("eff_ps",None)
     elapsed = dct.get("elapsed",None)
@@ -303,8 +328,17 @@ def print_row(idx,vdict):
     # Time elapsed and delta
     elapsed_prev = dct_prev.get("elapsed",None)
     elapsed_next = dct_next.get("elapsed",None)
-    delta_time   = elapsed_next - elapsed if elapsed_next is not None else 0.
+    delta_time   = elapsed_next - elapsed if elapsed_next is not None else fill_duration - elapsed
     enabled      = "YES" if delta_time > 0. else ""
+
+    # Check if next delta_time is nonzero
+    #idx_nnext = idx+2 if idx<len(vdict)-2 else None
+    #dct_nnext = vdict[idx_nnext] if idx_nnext is not None and idx_nnext != idx else {}
+    #elapsed_nnext = dct_nnext.get("elapsed",None)
+    #delta_nnext = elapsed_nnext - elapsed_next if elapsed_nnext is not None else None
+    #if delta_time > 0. and delta_nnext is not None and delta_nnext == 0. : delta_time = fill_duration - elapsed
+    #print(elapsed_prev,elapsed,elapsed_next,elapsed_nnext,delta_time,delta_nnext)
+    #print(elapsed_prev,elapsed,elapsed_next,delta_time)
 
     # Integrated luminosity
     lumi = Linst(pu) * delta_time * 3600. # /fb
@@ -312,8 +346,8 @@ def print_row(idx,vdict):
     #print(lumi,eff_ps,cands)
 
     # Unused L1 rate (ensure +ve given delta_pu precision)
-    unused = l1_free - l1_rate/l1_prescale
-    if abs(unused) < delta_l1 : unused = 0.
+    l1_unused = l1_free - l1_rate/l1_prescale
+    if abs(l1_unused) < delta_l1 : l1_unused = 0.
     
     if intermediate==False:
         print(f'{index:5.0f}',end='')
@@ -330,7 +364,10 @@ def print_row(idx,vdict):
     print(f' {l1_rate:4.1f}',end='')
     print(f' {l1_prescale:5.2f}' if intermediate_columns == True else '',end='')
     print(f' {l1_rate/l1_prescale:7.1f}' if intermediate_columns == True else '',end='')
-    print(f' {unused:6.2f}',end='')
+    print(f' {l1_unused:6.2f}',end='')
+    print(f' | {hlt_ratebx:7.3f}',end='')
+    print(f' {hlt_rate:6.1f}',end='')
+    print(f' {hlt_unused:6.1f}',end='')
     print(f' | {eff:5.3f}',end='')
     print(f' {eff_ps:6.3f}' if intermediate_columns == True else '',end='')
     print(f' {eff_gain:4.2f}',end='')
@@ -361,7 +398,7 @@ def print_table():
         total_elapsed += dct.get("dtime",None)
         total_lumi += dct.get("lumi",None)
         total_cands += dct.get("cands",None)
-    print(" "*111 if intermediate_columns == True else " "*90,end='')
+    print(" "*111 if intermediate_columns == True else " "*114,end='')
     print(f"{total_elapsed:5.2f}",f"{total_lumi:5.2f}",f"{total_cands:5.2f}")
     print("#"*80)
     print()
